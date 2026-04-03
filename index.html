@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小多吉 - 松赞产品助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #F8F6F3;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            max-height: 900px;
+            background: #F8F6F3;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 头部导航 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #F8F6F3;
+            position: relative;
+            z-index: 10;
+        }
+
+        .header-left {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .header-right {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        /* 聊天区域 */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px 100px;
+            position: relative;
+        }
+
+        .chat-area::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 欢迎卡片 */
+        .welcome-section {
+            text-align: center;
+            padding: 40px 20px;
+            margin-left: -24px;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #C9A96E 0%, #E8D5B5 100%);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 4px 20px rgba(201, 169, 110, 0.3);
+        }
+
+        .welcome-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .welcome-title span {
+            color: #C9A96E;
+        }
+
+        .welcome-subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        .welcome-desc {
+            font-size: 14px;
+            color: #999;
+            line-height: 1.8;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        /* 消息气泡 */
+        .message {
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            font-size: 14px;
+            line-height: 1.7;
+            color: #333;
+        }
+
+        .message.user .message-content {
+            background: #C9A96E;
+            color: #fff;
+            margin-left: 40px;
+        }
+
+        /* 产品卡片 */
+        .product-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .product-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .product-image {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #F5F0E8 0%, #EDE6DC 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .product-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #F5F0E8;
+            color: #8B7355;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        /* 亮点区域 */
+        .highlights {
+            background: #FAF8F5;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .highlights-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .highlight-item {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.8;
+            padding: 4px 0;
+            border-bottom: 1px dashed #E8E4DE;
+        }
+
+        .highlight-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 行程时间线 */
+        .itinerary {
+            margin-top: 12px;
+        }
+
+        .itinerary-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .itinerary-list {
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .itinerary-list::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: #E8D5B5;
+        }
+
+        .itinerary-item {
+            position: relative;
+            padding: 10px 0;
+            border-bottom: 1px solid #F5F0E8;
+        }
+
+        .itinerary-item:last-child {
+            border-bottom: none;
+        }
+
+        .itinerary-item::before {
+            content: '';
+            position: absolute;
+            left: -18px;
+            top: 14px;
+            width: 8px;
+            height: 8px;
+            background: #C9A96E;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+
+        .itinerary-day {
+            font-size: 12px;
+            font-weight: 600;
+            color: #C9A96E;
+            margin-bottom: 2px;
+        }
+
+        .itinerary-location {
+            font-size: 13px;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .itinerary-activity {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* 价格区域 */
+        .price-section {
+            background: linear-gradient(135deg, #FAF8F5 0%, #F5F0E8 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .price-main {
+            font-size: 32px;
+            font-weight: 700;
+            color: #C9A96E;
+        }
+
+        .price-unit {
+            font-size: 13px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .price-detail {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #E8D5B5;
+        }
+
+        .price-note {
+            font-size: 11px;
+            color: #999;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        /* 底部区域 */
+        .bottom-section {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #F8F6F3;
+            padding: 0 16px 20px;
+        }
+
+        /* 快捷功能卡片 */
+        .quick-cards {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            padding: 4px 0;
+        }
+
+        .quick-cards::-webkit-scrollbar {
+            display: none;
+        }
+
+        .quick-card {
+            flex-shrink: 0;
+            width: 140px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .quick-card:active {
+            transform: scale(0.98);
+        }
+
+        .quick-card-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .quick-card-text {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            background: #fff;
+            border-radius: 24px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .voice-btn {
+            width: 36px;
+            height: 36px;
+            background: #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 18px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .input-box {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            color: #333;
+            background: transparent;
+            font-family: inherit;
+        }
+
+        .input-box::placeholder {
+            color: #ccc;
+        }
+
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            background: #C9A96E;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 18px;
+            flex-shrink: 0;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+
+        .loading span {
+            width: 8px;
+            height: 8px;
+            background: #C9A96E;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading span:nth-child(1) { animation-delay: -0.32s; }
+        .loading span:nth-child(2) { animation-delay: -0.16s; }
+        .loading span:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* 设置面板 */
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.3);
+            z-index: 100;
+            display: none;
+        }
+
+        .settings-overlay.show {
+            display: block;
+        }
+
+        .settings-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            z-index: 101;
+            max-height: 60vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .settings-panel.show {
+            transform: translateY(0);
+        }
+
+        .settings-input {
+            width: 100%;
+            height: 80px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: none;
+        }
+
+        .settings-save-btn {
+            width: 100%;
+            padding: 12px;
+            background: #C9A96E;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-top: 12px;
+            cursor: pointer;
+        }
+
+        /* 库存卡片 */
+        .inventory-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .inventory-hotel {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .inventory-dates {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .room-type-item {
+            background: #FAF8F5;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .room-type-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .room-type-status {
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .room-type-price {
+            font-size: 18px;
+            font-weight: 600;
+            color: #C9A96E;
+        }
+
+        .inventory-loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="header-left"></div>
+            <div class="header-title">小多吉</div>
+            <div class="header-right" onclick="showSettings()" style="cursor:pointer;">⚙️</div>
+        </div>
+
+        <!-- 设置弹窗 -->
+        <div class="settings-overlay" id="settingsOverlay" onclick="hideSettings()"></div>
+        <div class="settings-panel" id="settingsPanel">
+            <div style="padding:16px;border-bottom:1px solid #eee;">
+                <div style="font-size:16px;font-weight:600;">设置</div>
+            </div>
+            <div style="padding:16px;">
+                <div style="font-size:13px;color:#666;margin-bottom:8px;">Authorization Token</div>
+                <textarea id="authTokenInput" class="settings-input" placeholder="粘贴 Authorization token"></textarea>
+                <div style="font-size:11px;color:#999;margin-top:4px;">从浏览器开发者工具复制，或联系管理员获取</div>
+                <button class="settings-save-btn" onclick="saveSettings()">保存设置</button>
+                <div id="settingsSaved" style="color:var(--success);font-size:12px;margin-top:8px;display:none;">✅ 已保存</div>
+            </div>
+        </div>
+
+        <!-- 聊天区域 -->
+        <div class="chat-area" id="chatArea">
+            <!-- 欢迎语 -->
+            <div class="welcome-section">
+                <div class="avatar">👩‍🌾</div>
+                <div class="welcome-title">我叫<span>小多吉</span></div>
+                <div class="welcome-subtitle">是您的产品助手</div>
+                <div class="welcome-desc">
+                    我可以为你快速解答旅行产品的行程信息、价格等问题，能推荐适合的旅行产品，也可以帮您快速下单哦
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部区域 -->
+        <div class="bottom-section">
+            <!-- 输入框 -->
+            <div class="input-area">
+                <input type="text" class="input-box" id="userInput" placeholder="请输入消息">
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatArea = document.getElementById('chatArea');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // ============================================
+        // 酒店代码映射（来自酒店表 2026-04-03）
+        // ============================================
+        const HOTEL_CODES = {
+            // 南迦巴瓦
+            '南迦巴瓦': 'STNJBW', '达林': 'STNJBW', '达': 'STNJBW',
+            // 梅里
+            '梅里': 'STML', '梅': 'STML',
+            // 石月亮
+            '石月亮': 'STSHYL', '石': 'STSHYL',
+            // 香格里拉林卡
+            '香格里拉林卡': 'STLKSGL', '香格里拉': 'STLKSGL', '香': 'STLKSGL',
+            // 绿谷
+            '绿谷': 'STLG', '绿': 'STLG',
+            // 塔城
+            '塔城': 'STTC', '塔': 'STTC',
+            // 奔子栏
+            '奔子栏': 'STBZL', '奔': 'STBZL',
+            // 丙中洛
+            '丙中洛': 'STBZHL', '丙': 'STBZHL',
+            // 茨中
+            '茨中': 'STCZH', '茨': 'STCZH',
+            // 巴松措
+            '巴松措': 'STLKBSC', '巴': 'STLKBSC', '巴松': 'STLKBSC',
+            // 拉萨
+            '拉萨': 'STLKLS', '拉': 'STLKLS',
+            // 百巴
+            '百巴': 'STBBZP', '百': 'STBBZP',
+            // 来古
+            '来古': 'STRWLG', '来': 'STRWLG',
+            // 波密
+            '波密': 'STBMLK', '波': 'STBMLK',
+            // 丽江
+            '丽江': 'STLKLJ', '丽': 'STLKLJ',
+            // 普洱
+            '普洱': 'STPELG', '普': 'STPELG',
+            // 亚丁
+            '亚丁': 'STYD', '亚': 'STYD',
+            // 如美
+            '如美': 'STMKRM',
+            // 泸沽湖（英迪格）
+            '泸沽湖': 'LGLHOTEL', '泸': 'LGLHOTEL'
+        };
+
+        const HOTEL_NAMES = {
+            'STNJBW': '松赞南迦巴瓦山居',
+            'STML': '松赞梅里山居',
+            'STSHYL': '松赞石月亮山居',
+            'STLKSGL': '松赞香格里拉林卡',
+            'STLG': '松赞绿谷山居',
+            'STTC': '松赞塔城山居',
+            'STBZL': '松赞奔子栏山居',
+            'STBZHL': '松赞丙中洛山居',
+            'STCZH': '松赞茨中山居',
+            'STLKBSC': '松赞巴松措林卡',
+            'STLKLS': '松赞拉萨林卡',
+            'STBBZP': '松赞百巴帐篷营地',
+            'STRWLG': '松赞来古山居',
+            'STBMLK': '松赞波密山居',
+            'STLKLJ': '松赞丽江山居',
+            'STPELG': '松赞普洱绿谷',
+            'STYD': '松赞亚丁山居',
+            'STMKRM': '松赞如美山居',
+            'LGLHOTEL': '泸沽湖英迪格酒店'
+        };
+
+        // API配置
+        const INVENTORY_API = 'https://gds.songtsam.com/product-room/bks/productType/listPrSingleOrderRoom';
+
+        // 固定请求参数
+        const INVENTORY_DEFAULT_PARAMS = {
+            hotelGroupCode: 'SONGTSAM',
+            otaChannel: 'CRS',
+            maxMemberLevel: '002',
+            unitCode: 'SONGTSAM'
+        };
+
+        // ============================================
+        // 设置面板
+        // ============================================
+        function showSettings() {
+            document.getElementById('settingsOverlay').classList.add('show');
+            document.getElementById('settingsPanel').classList.add('show');
+            document.getElementById('authTokenInput').value = localStorage.getItem('songtsam_auth_token') || '';
+        }
+
+        function hideSettings() {
+            document.getElementById('settingsOverlay').classList.remove('show');
+            document.getElementById('settingsPanel').classList.remove('show');
+        }
+
+        function saveSettings() {
+            const token = document.getElementById('authTokenInput').value.trim();
+            localStorage.setItem('songtsam_auth_token', token);
+            document.getElementById('settingsSaved').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('settingsSaved').style.display = 'none';
+                hideSettings();
+            }, 1000);
+        }
+
+        // ============================================
+        // 自然语言解析
+        // ============================================
+        function parseQueryForInventory(query) {
+            const q = query.toLowerCase();
+
+            // 检测是否是库存查询请求
+            const inventoryKeywords = ['房间', '房价', '有房', '订房', '房间价格', '酒店', '山居', '林卡', '营'];
+            const isInventoryQuery = inventoryKeywords.some(k => q.includes(k));
+
+            if (!isInventoryQuery) return null;
+
+            // 提取酒店名称
+            let hotelCode = null;
+            for (const [name, code] of Object.entries(HOTEL_CODES)) {
+                if (q.includes(name.toLowerCase())) {
+                    hotelCode = code;
+                    break;
+                }
+            }
+
+            // 如果没找到具体酒店，返回提示
+            if (!hotelCode) {
+                return { type: 'need_hotel' };
+            }
+
+            // 提取日期
+            let beginDate = null, endDate = null;
+
+            // 匹配 "4月22日" 或 "4月22"
+            const dateMatch = q.match(/(\d{1,2})月(\d{1,2})[日]?/);
+            if (dateMatch) {
+                const month = parseInt(dateMatch[1]);
+                const day = parseInt(dateMatch[2]);
+                const year = new Date().getFullYear();
+                const checkin = new Date(year, month - 1, day);
+                const checkout = new Date(checkin);
+                checkout.setDate(checkout.getDate() + 1);
+                beginDate = formatDate(checkin);
+                endDate = formatDate(checkout);
+            }
+
+            // 匹配日期范围 "4月22日到4月23日"
+            const rangeMatch = q.match(/(\d{1,2})月(\d{1,2})[日]?.*到.*(\d{1,2})月(\d{1,2})[日]?/);
+            if (rangeMatch) {
+                const year = new Date().getFullYear();
+                beginDate = formatDate(new Date(year, parseInt(rangeMatch[1]) - 1, parseInt(rangeMatch[2])));
+                endDate = formatDate(new Date(year, parseInt(rangeMatch[3]) - 1, parseInt(rangeMatch[4])));
+            }
+
+            // 匹配今晚/明晚
+            if (q.includes('今晚')) {
+                const today = new Date();
+                beginDate = formatDate(today);
+                endDate = formatDate(new Date(today.setDate(today.getDate() + 1)));
+            } else if (q.includes('明晚')) {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                beginDate = formatDate(tomorrow);
+                endDate = formatDate(new Date(tomorrow.setDate(tomorrow.getDate() + 1)));
+            }
+
+            return {
+                type: 'inventory',
+                hotelCode,
+                hotelName: HOTEL_NAMES[hotelCode] || hotelCode,
+                beginDate,
+                endDate
+            };
+        }
+
+        function formatDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // ============================================
+        // 库存查询
+        // ============================================
+        async function queryInventory(hotelCode, beginDate, endDate, roomTypes = null) {
+            const token = localStorage.getItem('songtsam_auth_token');
+            if (!token) {
+                return {
+                    error: true,
+                    message: '请先在设置中配置 Authorization Token'
+                };
+            }
+
+            try {
+                const requestBody = {
+                    ...INVENTORY_DEFAULT_PARAMS,
+                    beginDate: beginDate,  // 格式: YYYY-MM-DD
+                    endDate: endDate,
+                    hotelCodes: [hotelCode],  // 数组格式
+                    rmtypes: roomTypes  // 可选房型代码数组
+                };
+
+                const resp = await fetch(INVENTORY_API, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    return {
+                        error: true,
+                        message: `请求失败 (${resp.status}): ${errText.substring(0, 100)}`
+                    };
+                }
+
+                const data = await resp.json();
+                return { error: false, data, hotelCode, beginDate, endDate };
+
+            } catch(e) {
+                return {
+                    error: true,
+                    message: `网络错误: ${e.message}`
+                };
+            }
+        }
+
+        // 渲染库存结果
+        function renderInventoryResult(result) {
+            if (result.error) {
+                return `
+                    <div class="inventory-card">
+                        <div style="color:#d32f2f;font-size:13px;">⚠️ ${result.message}</div>
+                        ${result.message.includes('Token') ? '<div style="font-size:12px;color:#666;margin-top:8px;">点击右上角 ⚙️ 设置Token</div>' : ''}
+                    </div>
+                `;
+            }
+
+            const { data, hotelCode, beginDate, endDate } = result;
+            const hotelName = HOTEL_NAMES[hotelCode] || hotelCode;
+
+            // 计算晚数
+            const checkin = new Date(beginDate);
+            const checkout = new Date(endDate);
+            const nights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
+
+            let html = `
+                <div class="inventory-card">
+                    <div class="inventory-hotel">🏨 ${hotelName}</div>
+                    <div class="inventory-dates">📅 ${beginDate} 入住 · ${endDate} 离店 · 共${nights}晚</div>
+            `;
+
+            // 解析API响应 - 正确的结构：retVal数组中每个条目包含房间信息和detailDtos数组
+            let roomTypeEntries = [];
+            if (data && data.retVal && Array.isArray(data.retVal)) {
+                roomTypeEntries = data.retVal;
+            }
+
+            if (roomTypeEntries.length > 0) {
+                // 按日期分组，先收集所有日期
+                const byDate = {};
+
+                // 遍历每个房型+产品组合
+                roomTypeEntries.forEach(entry => {
+                    // 顶层：房间基本信息
+                    const rmtypeDesc = entry.rmtypeDesc || '标准房';
+                    const productDesc = entry.productDesc || '';
+                    const rmtype = entry.rmtype || '';
+
+                    // detailDtos：每日库存数据
+                    const detailDtos = entry.detailDtos || [];
+
+                    detailDtos.forEach(dayData => {
+                        const rsvDate = dayData.rsvDate ? dayData.rsvDate.split(' ')[0] : beginDate;
+                        const realPrice = dayData.realPrice || 0;
+                        const pmsNum = dayData.pmsNum || 0;
+                        const blockNum = dayData.blockNum || 0;
+
+                        if (!byDate[rsvDate]) {
+                            byDate[rsvDate] = [];
+                        }
+                        byDate[rsvDate].push({
+                            rmtypeDesc,
+                            productDesc,
+                            rmtype,
+                            realPrice,
+                            pmsNum,
+                            blockNum
+                        });
+                    });
+                });
+
+                // 按日期顺序展示
+                Object.keys(byDate).sort().forEach(date => {
+                    const dayRooms = byDate[date];
+                    html += `<div style="font-size:12px;color:#C9A96E;font-weight:600;margin-top:12px;">📅 ${date}</div>`;
+
+                    dayRooms.forEach(room => {
+                        const totalAvailable = room.pmsNum + room.blockNum;
+                        const statusClass = totalAvailable > 0 ? 'color:#2e7d32;' : 'color:#d32f2f;';
+                        const statusText = totalAvailable > 0 ? '✅ 有房' : '❌ 满房';
+                        const pmsText = room.pmsNum > 0 ? `公共池: ${room.pmsNum}间` : '';
+                        const blockText = room.blockNum > 0 ? `预保留: ${room.blockNum}间` : '';
+
+                        html += `
+                            <div class="room-type-item">
+                                <div class="room-type-name">
+                                    ${room.rmtypeDesc}
+                                    ${room.rmtype ? `<span style="color:#999;font-weight:normal;font-size:12px;">(${room.rmtype})</span>` : ''}
+                                </div>
+                                ${room.productDesc ? `<div style="font-size:11px;color:#666;">${room.productDesc}</div>` : ''}
+                                <div style="display:flex;gap:12px;margin-top:4px;">
+                                    <span class="room-type-status" style="${statusClass}">${statusText}</span>
+                                    ${room.pmsNum > 0 ? `<span style="font-size:12px;color:#666;">${pmsText}</span>` : ''}
+                                    ${room.blockNum > 0 ? `<span style="font-size:12px;color:#666;">${blockText}</span>` : ''}
+                                </div>
+                                ${totalAvailable > 0 && room.realPrice > 0 ? `<div class="room-type-price">¥${room.realPrice.toLocaleString()}/晚</div>` : ''}
+                            </div>
+                        `;
+                    });
+                });
+            } else {
+                html += `<div style="font-size:13px;color:#666;margin-top:8px;">暂无库存数据</div>`;
+                html += renderRawData(data);
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function renderRawData(data) {
+            const raw = JSON.stringify(data, null, 2);
+            return `
+                <details style="margin-top:12px;">
+                    <summary style="cursor:pointer;font-size:12px;color:#999;">查看原始数据</summary>
+                    <pre style="font-size:10px;background:#f5f5f5;padding:8px;border-radius:6px;overflow:auto;max-height:150px;margin-top:8px;">${raw.substring(0, 800)}${raw.length > 800 ? '...' : ''}</pre>
+                </details>
+            `;
+        }
+
+        // 回车发送
+        userInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : ''}`;
+            messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            return messageDiv;
+        }
+
+        function addLoading() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.id = 'loadingMsg';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="loading">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function removeLoading() {
+            const loading = document.getElementById('loadingMsg');
+            if (loading) loading.remove();
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            sendBtn.disabled = true;
+
+            // 隐藏欢迎区域
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) welcomeSection.style.display = 'none';
+
+            // 显示用户消息
+            addMessage(`<p>${text}</p>`, true);
+
+            // 清空输入
+            userInput.value = '';
+
+            // 显示加载
+            addLoading();
+
+            // 解析查询意图
+            const parsed = parseQueryForInventory(text);
+
+            if (parsed && parsed.type === 'need_hotel') {
+                removeLoading();
+                addMessage(`
+                    <p>好的，我可以帮您查询酒店房间和价格～</p>
+                    <p style="margin-top:8px;">请问您想查询哪家酒店的库存？比如：</p>
+                    <div style="margin-top:8px;font-size:13px;color:#666;">
+                        • 南迦巴瓦山居<br>
+                        • 梅里山居<br>
+                        • 香格里拉林卡<br>
+                        • 来古山居<br>
+                        • 丽江/塔城/波密 等
+                    </div>
+                    <p style="margin-top:8px;">请告诉我酒店名称和入住日期，比如："4月22日南迦巴瓦有房吗"</p>
+                `);
+                sendBtn.disabled = false;
+                return;
+            }
+
+            if (parsed && parsed.type === 'inventory') {
+                // 需要日期但没解析到
+                if (!parsed.beginDate) {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    parsed.beginDate = formatDate(tomorrow);
+                    parsed.endDate = formatDate(new Date(tomorrow.setDate(tomorrow.getDate() + 1)));
+                }
+
+                // 执行库存查询（不传rmtypes表示查询全部房型）
+                const result = await queryInventory(parsed.hotelCode, parsed.beginDate, parsed.endDate);
+                removeLoading();
+                addMessage(renderInventoryResult(result));
+                sendBtn.disabled = false;
+                return;
+            }
+
+            // 非库存查询，走原有推荐逻辑
+            setTimeout(() => {
+                removeLoading();
+                const response = generateRecommendation(text);
+                addMessage(response);
+                sendBtn.disabled = false;
+            }, 1500);
+        }
+
+        // ============================================
+        // 松赞产品数据
+        // ============================================
+
+        const PRODUCTS = {
+            '雪山圣湖布达拉': {
+                name: '雪山圣湖布达拉',
+                shortName: '达达巴巴拉拉',
+                nights: 7,
+                days: 8,
+                type: '主题团',
+                vehicle: '路虎卫士',
+                tags: ['主题团', '雪山', '圣湖', '布达拉宫'],
+                desc: '从达林出发，穿越巴松措，抵达日光城拉萨，7晚8天深度探访',
+                destination: '拉萨·巴松措',
+                highlights: [
+                    '🏔️ 南迦巴瓦——中国最美雪山，住在山居看日出日落',
+                    '🌊 巴松措——遗落人间的绿宝石，乘坐帆船游湖',
+                    '🏛️ 布达拉宫——世界文化遗产，感受藏地信仰力量'
+                ],
+                itinerary: [
+                    { day: 'D1', location: '南迦巴瓦山居', activity: '接机入住，雪山欢迎晚宴' },
+                    { day: 'D2', location: '南迦巴瓦山居', activity: '雅鲁藏布大峡谷轻徒步，尼洋河谷风光' },
+                    { day: 'D3', location: '南迦巴瓦→巴松措', activity: '翻越色季拉山，抵达巴松措' },
+                    { day: 'D4', location: '巴松措', activity: '帆船游湖，错高古村探访' },
+                    { day: 'D5', location: '巴松措→拉萨', activity: '沿着拉林高速抵达拉萨' },
+                    { day: 'D6', location: '拉萨', activity: '布达拉宫深度导览，八廓街漫步' },
+                    { day: 'D7', location: '拉萨', activity: '大昭寺/色拉寺，藏族家访' },
+                    { day: 'D8', location: '拉萨', activity: '送机，结束旅程' }
+                ],
+                prices: {
+                    '节日': 25164,
+                    '旺季': 23476,
+                    '平季': 22000,
+                    '淡季': 19543
+                }
+            },
+            '回到远方的家': {
+                name: '回到远方的家',
+                shortName: '丽丽塔塔绿绿',
+                nights: 6,
+                days: 7,
+                type: '主题团',
+                vehicle: '奔驰商务',
+                tags: ['主题团', '民族文化', '非遗'],
+                desc: '从丽江出发，经塔城抵达香格里拉绿谷，6晚7天茶马古道之旅',
+                destination: '丽江·塔城·香格里拉',
+                highlights: [
+                    '🏡 塔城山居——滇金丝猴家园，乡村慢生活',
+                    '🌾 哈达村——体验松赞农庄，稻田摸鱼',
+                    '🍵 绿谷山居——藏族人家，篝火晚会',
+                    '🏛️ 松赞林寺——小布达拉，藏族文化之旅'
+                ],
+                itinerary: [
+                    { day: 'D1', location: '丽江', activity: '接机入住，自由漫步大研古城' },
+                    { day: 'D2', location: '丽江→塔城', activity: '途经长江第一湾，塔城山居入住' },
+                    { day: 'D3', location: '塔城', activity: '亲近滇金丝猴，哈达村农庄体验' },
+                    { day: 'D4', location: '塔城→香格里拉', activity: '穿越彝族村寨，抵达绿谷山居' },
+                    { day: 'D5', location: '香格里拉', activity: '松赞林寺导览，藏族家访' },
+                    { day: 'D6', location: '香格里拉', activity: '高原牧场漫步，尼西黑陶体验' },
+                    { day: 'D7', location: '香格里拉', activity: '送机，结束旅程' }
+                ],
+                prices: {
+                    '节日': 25930,
+                    '旺季': 24191,
+                    '平季': 22670,
+                    '淡季': 20138
+                }
+            },
+            '天人之际': {
+                name: '天人之际',
+                shortName: '奔奔梅梅香',
+                nights: 5,
+                days: 6,
+                type: '主题团',
+                vehicle: '奔驰商务',
+                tags: ['主题团', '雪山', '摄影'],
+                desc: '深入三江并流区域，探访梅里雪山，感受天人合一的秘境',
+                destination: '奔子栏·梅里·香格里拉',
+                highlights: [
+                    '🏔️ 梅里雪山——藏区八大神山之首，日照金山',
+                    '🌅 飞来寺——最佳观景点，住进梅里山居',
+                    '☕ 茨中教堂——百年天主教堂，品红酒',
+                    '🍵 奔子栏——茶马古道重镇，尼西土陶'
+                ],
+                itinerary: [
+                    { day: 'D1', location: '香格里拉', activity: '接机入住，自由漫步独克宗古城' },
+                    { day: 'D2', location: '香格里拉→奔子栏→梅里', activity: '金沙江月亮湾，尼西黑陶体验' },
+                    { day: 'D3', location: '梅里', activity: '梅里雪山日照金山，明永冰川徒步' },
+                    { day: 'D4', location: '梅里→茨中→奔子栏', activity: '茨中教堂，品葡萄美酒' },
+                    { day: 'D5', location: '奔子栏→香格里拉', activity: '东竹林寺，返回绿谷' },
+                    { day: 'D6', location: '香格里拉', activity: '送机，结束旅程' }
+                ],
+                prices: {
+                    '节日': 25930,
+                    '旺季': 24191,
+                    '平季': 22670,
+                    '淡季': 20138
+                }
+            },
+            '探索生命的力量': {
+                name: '探索生命的力量',
+                shortName: '波波来来波达达',
+                nights: 7,
+                days: 8,
+                type: '主题团',
+                vehicle: '路虎卫士',
+                tags: ['主题团', '冰川', '生态'],
+                desc: '穿越波密原始森林，抵达来古冰川，7晚8天探索之旅',
+                destination: '波密·来古·南迦巴瓦',
+                highlights: [
+                    '🌲 波密——藏王故里，氧气最充足的西藏',
+                    '❄️ 来古冰川——西藏已知最宽的冰川',
+                    '🏔️ 南迦巴瓦——中国最美雪山，住进雪山里',
+                    '🌊 雅鲁藏布大峡谷——世界最深最长峡谷'
+                ],
+                itinerary: [
+                    { day: 'D1', location: '林芝', activity: '接机入住，适应高原' },
+                    { day: 'D2', location: '林芝→波密', activity: '色季拉山，鲁朗林海，扎西岗村' },
+                    { day: 'D3', location: '波密', activity: '嘎瓦龙冰川，然乌湖日落' },
+                    { day: 'D4', location: '波密→来古', activity: '抵达来古山居，冰川下午茶' },
+                    { day: 'D5', location: '来古', activity: '雅隆冰川轻徒步，朵尼草甸' },
+                    { day: 'D6', location: '来古→南迦巴瓦', activity: '翻越德姆拉山，抵达山居' },
+                    { day: 'D7', location: '南迦巴瓦', activity: '雅鲁藏布大峡谷，索松村民俗' },
+                    { day: 'D8', location: '南迦巴瓦', activity: '送机，结束旅程' }
+                ],
+                prices: {
+                    '节日': 25164,
+                    '旺季': 23476,
+                    '平季': 22000,
+                    '淡季': 19543
+                }
+            }
+        };
+
+        function estimatePrice(productId, adults, children, isPrivate, season = '平季') {
+            let product = PRODUCTS[productId];
+            if (!product) product = PRODUCTS['雪山圣湖布达拉'];
+
+            const adultUnit = product.prices[season] || product.prices['平季'];
+            const childUnit = Math.round(adultUnit * 0.74);
+            const total = adultUnit * adults + childUnit * children;
+            const privateMultiplier = isPrivate ? 1.10 : 1.0;
+            const finalTotal = Math.round(total * privateMultiplier);
+
+            return {
+                total: finalTotal,
+                adultUnit: Math.round(adultUnit * privateMultiplier),
+                childUnit: Math.round(childUnit * privateMultiplier),
+                nights: product.nights,
+                days: product.days,
+                isPrivate,
+                season,
+                vehicle: product.vehicle
+            };
+        }
+
+        function generateRecommendation(query) {
+            const q = query.toLowerCase();
+
+            let productId = '雪山圣湖布达拉';
+            let productName = '雪山圣湖布达拉';
+            let destination = '拉萨·巴松措';
+            let tags = ['主题团', '雪山', '圣湖', '布达拉宫'];
+
+            if (q.includes('丽江') || q.includes('远方的家')) {
+                productId = '回到远方的家';
+                productName = '回到远方的家';
+                destination = '丽江·塔城·香格里拉';
+                tags = ['主题团', '民族文化', '非遗'];
+            } else if (q.includes('梅里')) {
+                productId = '天人之际';
+                productName = '天人之际';
+                destination = '奔子栏·梅里·香格里拉';
+                tags = ['主题团', '雪山', '摄影'];
+            } else if (q.includes('波密') || q.includes('冰川')) {
+                productId = '探索生命的力量';
+                productName = '探索生命的力量';
+                destination = '波密·来古·南迦巴瓦';
+                tags = ['主题团', '冰川', '生态'];
+            }
+
+            let adults = 2, children = 0;
+            const isPrivate = q.includes('私享') || q.includes('管家');
+
+            if (q.includes('2大1小')) { adults = 2; children = 1; }
+            else if (q.includes('3大1小')) { adults = 3; children = 1; }
+            else if (q.includes('1大1小')) { adults = 1; children = 1; }
+            else if (q.includes('亲子') || q.includes('儿童')) { children = 1; }
+
+            let season = '平季';
+            const monthMatch = q.match(/(\d{1,2})月/);
+            if (monthMatch) {
+                const month = parseInt(monthMatch[1]);
+                if (month >= 4 && month <= 10) season = '旺季';
+                else if (month >= 11 || month <= 3) season = '淡季';
+            }
+            if (q.includes('旺季') || q.includes('暑假')) season = '旺季';
+            if (q.includes('淡季')) season = '淡季';
+            if (q.includes('春节') || q.includes('国庆')) season = '节日';
+
+            const product = PRODUCTS[productId];
+            const priceData = estimatePrice(productId, adults, children, isPrivate, season);
+            const formatPrice = (p) => '¥' + p.toLocaleString();
+
+            const highlightsHtml = product.highlights.map(h => 
+                `<div class="highlight-item">${h}</div>`
+            ).join('');
+
+            const itineraryHtml = product.itinerary.map(item => `
+                <div class="itinerary-item">
+                    <div class="itinerary-day">${item.day}</div>
+                    <div class="itinerary-location">${item.location}</div>
+                    <div class="itinerary-activity">${item.activity}</div>
+                </div>
+            `).join('');
+
+            const priceNote = children > 0 
+                ? `成人${formatPrice(priceData.adultUnit)}/人 × ${adults}人 + 儿童${formatPrice(priceData.childUnit)}/人 × ${children}人`
+                : `${formatPrice(priceData.adultUnit)}/人 × ${adults}人`;
+
+            return `
+                <p>根据您的需求，为您推荐：</p>
+                <div class="product-card">
+                    <div class="product-header">
+                        <div class="product-image">🏔️</div>
+                        <div class="product-info">
+                            <div class="product-name">${productName}</div>
+                            <div class="product-tags">
+                                ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="highlights">
+                        <div class="highlights-title">🌟 产品特色</div>
+                        ${highlightsHtml}
+                    </div>
+                    <div class="itinerary">
+                        <div class="itinerary-title">📅 行程安排（${product.nights}晚${product.days}天）</div>
+                        <div class="itinerary-list">
+                            ${itineraryHtml}
+                        </div>
+                    </div>
+                    <div class="price-section">
+                        <div class="price-main">${formatPrice(priceData.total)}</div>
+                        <div class="price-unit">${children > 0 ? '起/家庭' : '起/人'}（${isPrivate ? '私享管家' : '标准团'}）</div>
+                        <div class="price-detail">${destination} · ${season}价格</div>
+                        <div class="price-detail" style="margin-top:6px;font-size:11px;">${priceNote}</div>
+                        ${children > 0 ? `<div class="price-note">💡 儿童含早餐及下午茶，不含松赞林寺/亚丁/巴松措门票</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
