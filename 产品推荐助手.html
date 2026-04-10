@@ -1022,66 +1022,7 @@
             if (loading) loading.remove();
         }
 
-        async function sendMessage() {
-            const text = userInput.value.trim();
-            if (!text) return;
 
-            sendBtn.disabled = true;
-
-            // 隐藏欢迎区域
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) welcomeSection.style.display = 'none';
-
-            // 显示用户消息
-            addMessage(`<p>${text}</p>`, true);
-
-            // 清空输入
-            userInput.value = '';
-
-            // 显示加载
-            addLoading();
-
-            // 解析查询意图
-            const parsed = parseQueryForInventory(text);
-
-            if (parsed && parsed.type === 'need_hotel') {
-                removeLoading();
-                addMessage(`
-                    <p>好的，我可以帮您查询酒店房间和价格～</p>
-                    <p style="margin-top:8px;">请问您想查询哪家酒店的库存？比如：</p>
-                    <div style="margin-top:8px;font-size:13px;color:#666;">
-                        • 南迦巴瓦山居<br>
-                        • 梅里山居<br>
-                        • 香格里拉林卡<br>
-                        • 来古山居<br>
-                        • 丽江/塔城/波密 等
-                    </div>
-                    <p style="margin-top:8px;">请告诉我酒店名称和入住日期，比如："4月22日南迦巴瓦有房吗"</p>
-                `);
-                sendBtn.disabled = false;
-                return;
-            }
-
-            if (parsed && parsed.type === 'inventory') {
-                // 需要日期但没解析到
-                if (!parsed.beginDate) {
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    parsed.beginDate = formatDate(tomorrow);
-                    parsed.endDate = formatDate(new Date(tomorrow.setDate(tomorrow.getDate() + 1)));
-                }
-
-                // 执行库存查询（不传rmtypes表示查询全部房型）
-                const result = await queryInventory(parsed.hotelCode, parsed.beginDate, parsed.endDate);
-                removeLoading();
-                addMessage(renderInventoryResult(result));
-                sendBtn.disabled = false;
-                return;
-            }
-
-        // ============================================
-        // 后端API配置
-        // ============================================
         const API_BASE = 'http://localhost:5123';
 
         async function callRecommendAPI(query) {
