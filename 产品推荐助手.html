@@ -1079,13 +1079,162 @@
                 return;
             }
 
-            // 非库存查询，走原有推荐逻辑
-            setTimeout(() => {
+        // ============================================
+        // 后端API配置
+        // ============================================
+        const API_BASE = 'http://localhost:5123';
+
+        async function callRecommendAPI(query) {
+            try {
+                const response = await fetch(`${API_BASE}/api/recommend`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                if (!response.ok) throw new Error('API请求失败');
+                return await response.json();
+            } catch (error) {
+                console.error('API调用失败:', error);
+                return null;
+            }
+        }
+
+        // 渲染推荐结果卡片
+        function renderRecommendCards(result) {
+            if (!result.success || !result.products || result.products.length === 0) {
+                return `<p>抱歉，暂无匹配的产品，您可以换个需求试试～</p>`;
+            }
+
+            const { requirements, strategy, products } = result;
+            let html = '';
+
+            // 策略提示
+            if (strategy.tip) {
+                html += `<p style="margin:12px 0;font-size:13px;color:#666;">${strategy.tip}</p>`;
+            }
+
+            // 会员折扣提示
+            if (requirements.member_level) {
+                html += `<p style="margin:8px 0;font-size:12px;color:#C9A96E;">🎫 会员身份：${requirements.member_level.name}（${requirements.member_level.discount}折）</p>`;
+            }
+
+            // 推荐产品卡片
+            products.forEach((product, index) => {
+                const nights = product.nights || 0;
+                const days = product.days || nights + 1;
+                const typesHtml = (product.types || []).map(t => `<span class="tag">${t}</span>`).join('');
+                const tagsHtml = (product.tags || []).slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('');
+
+                let reasonsHtml = '';
+                if (product.reasons && product.reasons.length > 0) {
+                    reasonsHtml = `<div style="margin-top:8px;font-size:12px;color:#C9A96E;">${product.reasons.join(' · ')}</div>`;
+                }
+
+                html += `
+                    <div class="product-card">
+                        <div class="product-header">
+                            <div class="product-name">${product.name}</div>
+                            <div class="product-nights">${nights}晚${days}天</div>
+                        </div>
+                        <div class="product-tags">${typesHtml} ${tagsHtml}</div>
+                        <div class="product-desc">${product.desc || product.short_name || ''}</div>
+                        ${reasonsHtml}
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        // 非库存查询，走推荐API
+        async function doRecommend(text) {
+            const apiResult = await callRecommendAPI(text);
+
+            if (apiResult && apiResult.success) {
+                addMessage(renderRecommendCards(apiResult));
+            } else {
+                if (!apiResult) {
+                    addMessage(`
+                        <p>⚠️ 推荐服务暂不可用</p>
+                        <p style="margin-top:8px;">请先启动推荐服务：</p>
+                        <div style="margin-top:8px;padding:10px;background:#f5f5f5;border-radius:8px;font-size:12px;">
+                            <code>./start_api.sh</code><br>
+                            或<br>
+                            <code>python3 recommend_api.py</code>
+                        </div>
+                    `);
+                } else {
+                    addMessage(`<p>抱歉，暂无匹配的产品，您可以换个需求试试～</p>`);
+                }
+            }
+        }
+
+        // 原有的 generateRecommendation 函数（备用）
+        function generateRecommendation(text) {
+            // ... 原有逻辑保持不变
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            sendBtn.disabled = true;
+
+            // 隐藏欢迎区域
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) welcomeSection.style.display = 'none';
+
+            // 显示用户消息
+            addMessage(`<p>${text}</p>`, true);
+
+            // 清空输入
+            userInput.value = '';
+
+            // 显示加载
+            addLoading();
+
+            // 解析查询意图
+            const parsed = parseQueryForInventory(text);
+
+            if (parsed && parsed.type === 'need_hotel') {
                 removeLoading();
-                const response = generateRecommendation(text);
-                addMessage(response);
+                addMessage(`
+                    <p>好的，我可以帮您查询酒店房间和价格～</p>
+                    <p style="margin-top:8px;">请问您想查询哪家酒店的库存？比如：</p>
+                    <div style="margin-top:8px;font-size:13px;color:#666;">
+                        • 南迦巴瓦山居<br>
+                        • 梅里山居<br>
+                        • 香格里拉林卡<br>
+                        • 来古山居<br>
+                        • 丽江/塔城/波密 等
+                    </div>
+                    <p style="margin-top:8px;">请告诉我酒店名称和入住日期，比如："4月22日南迦巴瓦有房吗"</p>
+                `);
                 sendBtn.disabled = false;
-            }, 1500);
+                return;
+            }
+
+            if (parsed && parsed.type === 'inventory') {
+                // 需要日期但没解析到
+                if (!parsed.beginDate) {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    parsed.beginDate = formatDate(tomorrow);
+                    parsed.endDate = formatDate(new Date(tomorrow.setDate(tomorrow.getDate() + 1)));
+                }
+
+                // 执行库存查询
+                const result = await queryInventory(parsed.hotelCode, parsed.beginDate, parsed.endDate);
+                removeLoading();
+                addMessage(renderInventoryResult(result));
+                sendBtn.disabled = false;
+                return;
+            }
+
+            // 调用后端推荐API
+            removeLoading();
+            await doRecommend(text);
+            sendBtn.disabled = false;
         }
 
         // ============================================
