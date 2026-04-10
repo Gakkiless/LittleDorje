@@ -870,6 +870,27 @@
             }
         }
 
+        // 过滤关键词
+        const EXCLUDE_KEYWORDS = ['OTA', '飞猪', '携程'];
+
+        // 过滤库存数据
+        function filterInventoryData(entries) {
+            return entries.filter(entry => {
+                // 1. 产品状态必须是已上架（sta = 'I'）
+                if (entry.sta !== 'I') return false;
+
+                // 2. 产品名称不包含 OTA/飞猪/携程
+                const productDesc = entry.productDesc || '';
+                if (EXCLUDE_KEYWORDS.some(kw => productDesc.includes(kw))) return false;
+
+                // 3. 业务类型不包含"目的地套餐"
+                const categorySubDesc = entry.categorySubDesc || '';
+                if (categorySubDesc.includes('目的地套餐')) return false;
+
+                return true;
+            });
+        }
+
         // 渲染库存结果
         function renderInventoryResult(result) {
             if (result.error) {
@@ -898,7 +919,8 @@
             // 解析API响应 - 正确的结构：retVal数组中每个条目包含房间信息和detailDtos数组
             let roomTypeEntries = [];
             if (data && data.retVal && Array.isArray(data.retVal)) {
-                roomTypeEntries = data.retVal;
+                // 应用过滤条件
+                roomTypeEntries = filterInventoryData(data.retVal);
             }
 
             if (roomTypeEntries.length > 0) {
@@ -965,8 +987,7 @@
                     });
                 });
             } else {
-                html += `<div style="font-size:13px;color:#666;margin-top:8px;">暂无库存数据</div>`;
-                html += renderRawData(data);
+                html += `<div style="font-size:13px;color:#666;margin-top:8px;">暂无符合条件的库存数据</div>`;
             }
 
             html += '</div>';
