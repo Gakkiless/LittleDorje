@@ -1189,21 +1189,28 @@
                 }
                 const products = data.products || [];
                 if (products.length === 0) {
+                    const hint = data.no_match_hint || '';
+                    if (hint) {
+                        return `<p style="font-size:13px;color:#d32f2f;">${hint}</p>`;
+                    }
                     return `<p style="font-size:13px;color:#999;">未找到「${keyword}」相关产品，请换个关键词试试～</p>`;
                 }
                 let html = '';
                 products.forEach(p => {
                     const groups = p.groups || [];
-                    // 提取业务类型（主题团/私享管家/自由行）
-                    const tags = (p.tags || '').split(',');
-                    const bizType = tags.find(t => ['私享管家','主题团','自由行'].includes(t)) || '主题团';
-                    const nights = p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '';
-                    // 过滤掉业务类型，只显示其他标签
-                    const extraTags = tags.filter(t => !['私享管家','主题团','自由行'].includes(t)).slice(0,2).join(' · ');
+                    // 行程名称：优先用API返回的 travel_type_desc（包含完整品名），否则用向量库 title
+                    const productName = p.travel_type_desc || p.title || p.travel_type || '未知产品';
+                    // 从行程名称中解析行程规格（"5晚6天"）
+                    const specMatch = (productName).match(/(\d+晚\d+天)/);
+                    const specText = specMatch ? specMatch[1] : (p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '');
+                    // 业务类型（主题团/私享管家/自由行）
+                    const bizType = p.category_sub_desc || '主题团';
+                    // 行程规格（如"人"、"家庭"）
+                    const specsDesc = p.specifications_desc || '';
 
                     html += `<div style="margin-bottom:12px;">`;
-                    html += `<div style="font-size:13px;font-weight:600;color:#333;margin-bottom:2px;">${p.title || p.travel_type}</div>`;
-                    html += `<div style="font-size:11px;color:#999;margin-bottom:6px;">${bizType}${nights ? ' · ' + nights : ''}${extraTags ? ' · ' + extraTags : ''}</div>`;
+                    html += `<div style="font-size:14px;font-weight:600;color:#333;margin-bottom:2px;">${productName}</div>`;
+                    html += `<div style="font-size:11px;color:#999;margin-bottom:6px;">${bizType}${specText ? ' · ' + specText : ''}${specsDesc ? ' · ' + specsDesc : ''}</div>`;
 
                     if (groups.length === 0) {
                         html += `<div style="font-size:12px;color:#aaa;padding:6px 0;">暂无可售团期</div>`;
@@ -1226,7 +1233,7 @@
                         groups.forEach(g => {
                             const total = g.total || 0;
                             const remaining = g.remaining || 0;
-                            const booked = total - remaining;
+                            const booked = g.sold || (total - remaining);
                             const beginDate = (g.begin || '').slice(5);
                             const endDate = (g.end && g.end !== g.begin) ? ` → ${(g.end || '').slice(5)}` : '';
                             html += `

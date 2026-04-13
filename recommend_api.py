@@ -892,17 +892,19 @@ def groups_direct():
                 for p in results:
                     title = p.get("metadata", {}).get("title", "")
                     travel_type = p.get("metadata", {}).get("travel_type", "")
-                    # 关键词匹配：标题包含关键词
-                    if keyword and any(kw in title for kw in keyword.split()):
-                        matched_products.append({
-                            "travel_type": travel_type,
-                            "title": title,
-                            "tags": p.get("metadata", {}).get("tags", ""),
-                            "nights": p.get("metadata", {}).get("itinerary_nights"),
-                            "days": p.get("metadata", {}).get("itinerary_days"),
-                        })
-                    # 模糊匹配：向量距离足够近且有travel_type
-                    elif p.get("distance", 1) < 0.4 and travel_type:
+
+                    matched = False
+                    # 策略1：精确完整匹配（关键词完整出现在标题中）
+                    if keyword and keyword in title:
+                        matched = True
+                    # 策略2："｜"分隔，类别+品名均须出现在标题中
+                    # "香格里拉环线｜亚丁的远山" → 标题必须含两者
+                    elif '｜' in keyword:
+                        parts = [k.strip() for k in keyword.split('｜') if k.strip()]
+                        if parts and all(part in title for part in parts):
+                            matched = True
+
+                    if matched:
                         matched_products.append({
                             "travel_type": travel_type,
                             "title": title,
@@ -923,7 +925,7 @@ def groups_direct():
             except Exception as e:
                 print(f"[WARN] 向量库查询失败: {e}")
 
-        # 如果向量库没结果，fallback：直接全量拉团期，按关键词过滤
+        # 如果向量库没结果，fallback：直接全量拉团期，按关键词精确过滤
         if not matched_products:
             try:
                 all_groups = []
@@ -939,18 +941,54 @@ def groups_direct():
                     else:
                         break
 
-                # 按关键词过滤团期
-                filtered = [g for g in all_groups
-                            if any(kw in (g.get("travelTypeName", "") + g.get("travelGroupCode", ""))
-                                   for kw in keyword.split())]
+                # 关键词预处理：去掉末尾的 "X晚X天" 规格（因为 API 产品名的天数可能不同）
+                import re
+                kw_base = re.sub(r'\s*\d+晚\d+天\s*$', '', keyword).strip()
+
+                # 精确过滤：keyword 或去掉天数后 均完整出现在 travelTypeDesc 中
+                def keyword_match(ttd):
+                    if keyword in ttd:
+                        return True
+                    if kw_base and kw_base in ttd:
+                        return True
+                    if '｜' in kw_base:
+                        parts = [p.strip() for p in kw_base.split('｜') if p.strip()]
+                        return parts and all(p in ttd for p in parts)
+                    return False
+
+                # 先按 travelType 去重，再过滤
+                seen_tt = set()
+                deduped = []
+                for g in all_groups:
+                    tt = g.get("travelType", "")
+                    if tt and tt not in seen_tt:
+                        seen_tt.add(tt)
+                        deduped.append(g)
+
+                # 精确匹配行程名称
+                filtered = [g for g in deduped if keyword_match(g.get("travelTypeDesc", ""))]
+
+                # 如果精确匹配为空，记录友好提示
+                no_match_hint = ""
+                if not filtered and kw_base:
+                    no_match_hint = f'未找到「{kw_base}」相关团期，该产品可能暂无排期'
 
                 # 按 travelType 分组
                 by_type = {}
                 for g in filtered:
                     tt = g.get("travelType", "")
-                    name = g.get("travelTypeName", "")
+                    ttd = g.get("travelTypeDesc", "")
                     if tt not in by_type:
-                        by_type[tt] = {"travel_type": tt, "title": name, "tags": "", "nights": None, "days": None}
+                        by_type[tt] = {
+                            "travel_type": tt,
+                            "title": ttd,
+                            "tags": "",
+                            "nights": None,
+                            "days": None,
+                            "travel_type_desc": ttd,
+                            "category_sub_desc": g.get("categorySubDesc", ""),
+                            "specifications_desc": g.get("specificationsDesc", ""),
+                        }
                     if "groups" not in by_type[tt]:
                         by_type[tt]["groups"] = []
                     by_type[tt]["groups"].append(g)
@@ -958,12 +996,21 @@ def groups_direct():
                 result_products = []
                 for p in by_type.values():
                     gs = p.pop("groups", [])
-                    gs = [g for g in gs if g.get("saleNum", 0) > 0]
+                    # 过滤：仅保留直连(CRS)、已上架(sta 为空/'I')、有剩余库存
+                    gs = [g for g in gs
+                          if g.get("ota") != "OTA"
+                          and g.get("sta") in (None, "", "I")
+                          and g.get("saleNum", 0) > 0]
                     gs.sort(key=lambda x: x.get("groupBeginDate", ""))
                     if month:
                         month_gs = [g for g in gs if g.get("groupBeginDate", "").startswith(month)]
                         if month_gs:
                             gs = month_gs
+                    # 补充元数据（取第一条团期的字段）
+                    if gs:
+                        p["travel_type_desc"] = gs[0].get("travelTypeDesc", "")
+                        p["category_sub_desc"] = gs[0].get("categorySubDesc", "")
+                        p["specifications_desc"] = gs[0].get("specificationsDesc", "")
                     p["groups"] = [
                         {
                             "code": g.get("travelGroupCode", ""),
@@ -972,6 +1019,7 @@ def groups_direct():
                             "price": g.get("startingPrice", 0),
                             "remaining": g.get("saleNum", 0),
                             "total": g.get("productNum", 0),
+                            "sold": g.get("soldNum", 0),
                         }
                         for g in gs[:max_groups]
                     ]
@@ -982,6 +1030,7 @@ def groups_direct():
                     "keyword": keyword,
                     "month": month,
                     "source": "fallback_group_api",
+                    "no_match_hint": no_match_hint if not result_products else "",
                     "products": result_products
                 })
 
@@ -1019,13 +1068,23 @@ def groups_direct():
                         seen_code.add(code)
                         unique.append(g)
 
-                available = [g for g in unique if g.get("saleNum", 0) > 0]
-                available.sort(key=lambda x: x.get("groupBeginDate", ""))
+                # 过滤：仅保留直连(CRS)、已上架(sta 为空/'I')、有剩余库存
+                clean = [g for g in unique
+                         if g.get("ota") != "OTA"
+                         and g.get("sta") in (None, "", "I")
+                         and g.get("saleNum", 0) > 0]
+                clean.sort(key=lambda x: x.get("groupBeginDate", ""))
+
+                # 用 API 团期数据补充元数据
+                if clean:
+                    p["travel_type_desc"] = clean[0].get("travelTypeDesc", "") or p.get("title", "")
+                    p["category_sub_desc"] = clean[0].get("categorySubDesc", "") or "主题团"
+                    p["specifications_desc"] = clean[0].get("specificationsDesc", "") or ""
 
                 # 优先指定月份
-                display = available
+                display = clean
                 if month:
-                    month_gs = [g for g in available if g.get("groupBeginDate", "").startswith(month)]
+                    month_gs = [g for g in clean if g.get("groupBeginDate", "").startswith(month)]
                     if month_gs:
                         display = month_gs
 
@@ -1037,6 +1096,7 @@ def groups_direct():
                         "price": g.get("startingPrice", 0),
                         "remaining": g.get("saleNum", 0),
                         "total": g.get("productNum", 0),
+                        "sold": g.get("soldNum", 0),
                     }
                     for g in display[:max_groups]
                 ]
@@ -1045,11 +1105,19 @@ def groups_direct():
 
             result_products.append(p)
 
+        # 无匹配时的友好提示
+        no_hint = ""
+        if not result_products:
+            import re as re_mod
+            kw_base = re_mod.sub(r'\s*\d+晚\d+天\s*$', '', keyword).strip()
+            no_hint = f'未找到「{kw_base or keyword}」相关团期，该产品可能暂无排期'
+
         return jsonify({
             "success": True,
             "keyword": keyword,
             "month": month,
             "source": "vector_db",
+            "no_match_hint": no_hint,
             "products": result_products
         })
 
