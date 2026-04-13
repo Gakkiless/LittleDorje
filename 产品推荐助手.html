@@ -479,62 +479,6 @@
             40% { transform: scale(1); }
         }
 
-        /* 设置面板 */
-        .settings-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.3);
-            z-index: 100;
-            display: none;
-        }
-
-        .settings-overlay.show {
-            display: block;
-        }
-
-        .settings-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #fff;
-            border-radius: 20px 20px 0 0;
-            z-index: 101;
-            max-height: 60vh;
-            overflow-y: auto;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-        }
-
-        .settings-panel.show {
-            transform: translateY(0);
-        }
-
-        .settings-input {
-            width: 100%;
-            height: 80px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 13px;
-            font-family: inherit;
-            resize: none;
-        }
-
-        .settings-save-btn {
-            width: 100%;
-            padding: 12px;
-            background: #C9A96E;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-top: 12px;
-            cursor: pointer;
-        }
 
         /* 库存卡片 */
         .inventory-card {
@@ -596,22 +540,7 @@
         <div class="header">
             <div class="header-left"></div>
             <div class="header-title">小多吉</div>
-            <div class="header-right" onclick="showSettings()" style="cursor:pointer;">⚙️</div>
-        </div>
-
-        <!-- 设置弹窗 -->
-        <div class="settings-overlay" id="settingsOverlay" onclick="hideSettings()"></div>
-        <div class="settings-panel" id="settingsPanel">
-            <div style="padding:16px;border-bottom:1px solid #eee;">
-                <div style="font-size:16px;font-weight:600;">设置</div>
-            </div>
-            <div style="padding:16px;">
-                <div style="font-size:13px;color:#666;margin-bottom:8px;">Authorization Token</div>
-                <textarea id="authTokenInput" class="settings-input" placeholder="粘贴 Authorization token"></textarea>
-                <div style="font-size:11px;color:#999;margin-top:4px;">从浏览器开发者工具复制，或联系管理员获取</div>
-                <button class="settings-save-btn" onclick="saveSettings()">保存设置</button>
-                <div id="settingsSaved" style="color:var(--success);font-size:12px;margin-top:8px;display:none;">✅ 已保存</div>
-            </div>
+            <div class="header-right"></div>
         </div>
 
         <!-- 聊天区域 -->
@@ -718,30 +647,6 @@
             maxMemberLevel: '002',
             unitCode: 'SONGTSAM'
         };
-
-        // ============================================
-        // 设置面板
-        // ============================================
-        function showSettings() {
-            document.getElementById('settingsOverlay').classList.add('show');
-            document.getElementById('settingsPanel').classList.add('show');
-            document.getElementById('authTokenInput').value = localStorage.getItem('songtsam_auth_token') || '';
-        }
-
-        function hideSettings() {
-            document.getElementById('settingsOverlay').classList.remove('show');
-            document.getElementById('settingsPanel').classList.remove('show');
-        }
-
-        function saveSettings() {
-            const token = document.getElementById('authTokenInput').value.trim();
-            localStorage.setItem('songtsam_auth_token', token);
-            document.getElementById('settingsSaved').style.display = 'block';
-            setTimeout(() => {
-                document.getElementById('settingsSaved').style.display = 'none';
-                hideSettings();
-            }, 1000);
-        }
 
         // ============================================
         // 自然语言解析
