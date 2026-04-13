@@ -1061,48 +1061,90 @@
             }
         }
 
-        // 渲染推荐结果卡片
+        // 渲染单个产品卡片
+        function renderProductCard(product) {
+            const nights = product.nights || 0;
+            const days = product.days || (nights ? nights + 1 : 0);
+            const durationText = nights ? `${nights}晚${days}天` : '';
+
+            // 标签（排除产品形态词）
+            const typeWords = ['私享管家', '主题团', '自由行'];
+            const allTags = (product.tags || '').split(',').filter(t => t && !typeWords.includes(t));
+            const tagsHtml = allTags.slice(0, 4).map(t => `<span class="tag">${t}</span>`).join('');
+
+            // 支持的形态
+            const supportedTypes = product.supported_types || [];
+            const typesHtml = supportedTypes.map(t => `<span class="tag" style="background:#C9A96E;color:#fff;">${t}</span>`).join('');
+
+            // 推荐理由
+            const reasonsHtml = product.reasons && product.reasons.length
+                ? `<div style="margin-top:6px;font-size:12px;color:#C9A96E;">${product.reasons.join(' · ')}</div>`
+                : '';
+
+            // 团期展示
+            let groupsHtml = '';
+            if (product.groups && product.groups.length > 0) {
+                groupsHtml = `<div style="margin-top:8px;border-top:1px solid #f0e8d8;padding-top:8px;">`;
+                groupsHtml += `<div style="font-size:11px;color:#999;margin-bottom:4px;">📆 可预订团期</div>`;
+                product.groups.forEach(g => {
+                    groupsHtml += `
+                        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0;border-bottom:1px solid #faf6ef;">
+                            <span style="color:#555;">✅ ${g.begin}</span>
+                            <span style="color:#C9A96E;font-weight:600;">¥${(g.price||0).toLocaleString()}/人</span>
+                            <span style="color:#888;">剩${g.remaining}位</span>
+                        </div>
+                    `;
+                });
+                groupsHtml += `</div>`;
+            } else {
+                groupsHtml = `<div style="margin-top:6px;font-size:12px;color:#aaa;">📆 暂无近期团期，可联系顾问确认</div>`;
+            }
+
+            return `
+                <div class="product-card">
+                    <div class="product-header">
+                        <div class="product-name">${product.title || '未知产品'}</div>
+                        ${durationText ? `<div class="product-nights">${durationText}</div>` : ''}
+                    </div>
+                    <div class="product-tags" style="margin-top:6px;">${typesHtml} ${tagsHtml}</div>
+                    ${reasonsHtml}
+                    ${groupsHtml}
+                </div>
+            `;
+        }
+
+        // 渲染推荐结果（按形态分组）
         function renderRecommendCards(result) {
-            if (!result.success || !result.products || result.products.length === 0) {
+            const { requirements, strategy } = result;
+            const products_by_type = result.products_by_type || {};
+            const hasAny = Object.values(products_by_type).some(arr => arr && arr.length > 0);
+
+            if (!result.success || !hasAny) {
                 return `<p>抱歉，暂无匹配的产品，您可以换个需求试试～</p>`;
             }
 
-            const { requirements, strategy, products } = result;
             let html = '';
 
             // 策略提示
-            if (strategy.tip) {
+            if (strategy && strategy.tip) {
                 html += `<p style="margin:12px 0;font-size:13px;color:#666;">${strategy.tip}</p>`;
             }
 
             // 会员折扣提示
-            if (requirements.member_level) {
-                html += `<p style="margin:8px 0;font-size:12px;color:#C9A96E;">🎫 会员身份：${requirements.member_level.name}（${requirements.member_level.discount}折）</p>`;
+            if (requirements && requirements.member_level) {
+                html += `<p style="margin:8px 0;font-size:12px;color:#C9A96E;">🎫 会员身份：${requirements.member_level.name}（${(requirements.member_level.discount*10).toFixed(0)}折）</p>`;
             }
 
-            // 推荐产品卡片
-            products.forEach((product, index) => {
-                const nights = product.nights || 0;
-                const days = product.days || nights + 1;
-                const typesHtml = (product.types || []).map(t => `<span class="tag">${t}</span>`).join('');
-                const tagsHtml = (product.tags || []).slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('');
+            // 按形态分组展示
+            const sortPriority = (strategy && strategy.sort_priority) || ['私享管家', '主题团', '自由行'];
+            sortPriority.forEach(ptype => {
+                const items = products_by_type[ptype];
+                if (!items || items.length === 0) return;
 
-                let reasonsHtml = '';
-                if (product.reasons && product.reasons.length > 0) {
-                    reasonsHtml = `<div style="margin-top:8px;font-size:12px;color:#C9A96E;">${product.reasons.join(' · ')}</div>`;
-                }
-
-                html += `
-                    <div class="product-card">
-                        <div class="product-header">
-                            <div class="product-name">${product.name}</div>
-                            <div class="product-nights">${nights}晚${days}天</div>
-                        </div>
-                        <div class="product-tags">${typesHtml} ${tagsHtml}</div>
-                        <div class="product-desc">${product.desc || product.short_name || ''}</div>
-                        ${reasonsHtml}
-                    </div>
-                `;
+                html += `<div style="margin:12px 0 6px;font-size:13px;font-weight:600;color:#5a3e2b;border-left:3px solid #C9A96E;padding-left:8px;">【${ptype}】</div>`;
+                items.forEach(product => {
+                    html += renderProductCard(product);
+                });
             });
 
             return html;
