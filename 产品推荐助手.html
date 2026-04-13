@@ -502,29 +502,37 @@
             margin-bottom: 12px;
         }
 
-        .room-type-item {
-            background: #FAF8F5;
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 8px;
+        /* 库存表格 */
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 4px;
         }
 
-        .room-type-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 4px;
-        }
-
-        .room-type-status {
-            font-size: 12px;
-            margin-bottom: 4px;
-        }
-
-        .room-type-price {
-            font-size: 18px;
+        .inventory-table th {
+            background: #FAF6EF;
+            color: #8B6F47;
             font-weight: 600;
-            color: #C9A96E;
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 2px solid #E8D5B5;
+            white-space: nowrap;
+        }
+
+        .inventory-table td {
+            padding: 9px 10px;
+            border-bottom: 1px solid #F0EBE3;
+            color: #333;
+            vertical-align: middle;
+        }
+
+        .inventory-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .inventory-table tr:hover td {
+            background: #FDFAF6;
         }
 
         .inventory-loading {
@@ -840,7 +848,7 @@
             });
         }
 
-        // 渲染库存结果
+        // 渲染库存结果（表格形式）
         function renderInventoryResult(result) {
             if (result.error) {
                 return `
@@ -864,92 +872,77 @@
                     <div class="inventory-dates">📅 ${beginDate} 入住 · ${endDate} 离店 · 共${nights}晚</div>
             `;
 
-            // 解析API响应 - 正确的结构：retVal数组中每个条目包含房间信息和detailDtos数组
-            let roomTypeEntries = [];
+            // 收集所有行数据
+            let rows = [];
             if (data && data.retVal && Array.isArray(data.retVal)) {
-                // 应用过滤条件
-                roomTypeEntries = filterInventoryData(data.retVal);
-            }
-
-            if (roomTypeEntries.length > 0) {
-                // 按日期分组，先收集所有日期
-                const byDate = {};
-
-                // 遍历每个房型+产品组合
-                roomTypeEntries.forEach(entry => {
-                    // 顶层：房间基本信息
+                const filtered = filterInventoryData(data.retVal);
+                filtered.forEach(entry => {
                     const rmtypeDesc = entry.rmtypeDesc || '标准房';
                     const productDesc = entry.productDesc || '';
-                    const rmtype = entry.rmtype || '';
-
-                    // detailDtos：每日库存数据
-                    const detailDtos = entry.detailDtos || [];
-
-                    detailDtos.forEach(dayData => {
+                    (entry.detailDtos || []).forEach(dayData => {
                         const rsvDate = dayData.rsvDate ? dayData.rsvDate.split(' ')[0] : beginDate;
-                        const realPrice = dayData.realPrice || 0;
-                        const pmsNum = dayData.pmsNum || 0;
-                        const blockNum = dayData.blockNum || 0;
-
-                        if (!byDate[rsvDate]) {
-                            byDate[rsvDate] = [];
-                        }
-                        byDate[rsvDate].push({
+                        rows.push({
+                            date: rsvDate,
                             rmtypeDesc,
                             productDesc,
-                            rmtype,
-                            realPrice,
-                            pmsNum,
-                            blockNum
+                            pmsNum: dayData.pmsNum || 0,
+                            blockNum: dayData.blockNum || 0,
+                            realPrice: dayData.realPrice || 0
                         });
                     });
                 });
+            }
 
-                // 按日期顺序展示
-                Object.keys(byDate).sort().forEach(date => {
-                    const dayRooms = byDate[date];
-                    html += `<div style="font-size:12px;color:#C9A96E;font-weight:600;margin-top:12px;">📅 ${date}</div>`;
-
-                    dayRooms.forEach(room => {
-                        const totalAvailable = room.pmsNum + room.blockNum;
-                        const statusClass = totalAvailable > 0 ? 'color:#2e7d32;' : 'color:#d32f2f;';
-                        const statusText = totalAvailable > 0 ? '✅ 有房' : '❌ 满房';
-                        const pmsText = room.pmsNum > 0 ? `公共池: ${room.pmsNum}间` : '';
-                        const blockText = room.blockNum > 0 ? `预保留: ${room.blockNum}间` : '';
-
-                        html += `
-                            <div class="room-type-item">
-                                <div class="room-type-name">
-                                    ${room.rmtypeDesc}
-                                    ${room.rmtype ? `<span style="color:#999;font-weight:normal;font-size:12px;">(${room.rmtype})</span>` : ''}
-                                </div>
-                                ${room.productDesc ? `<div style="font-size:11px;color:#666;">${room.productDesc}</div>` : ''}
-                                <div style="display:flex;gap:12px;margin-top:4px;">
-                                    <span class="room-type-status" style="${statusClass}">${statusText}</span>
-                                    ${room.pmsNum > 0 ? `<span style="font-size:12px;color:#666;">${pmsText}</span>` : ''}
-                                    ${room.blockNum > 0 ? `<span style="font-size:12px;color:#666;">${blockText}</span>` : ''}
-                                </div>
-                                ${totalAvailable > 0 && room.realPrice > 0 ? `<div class="room-type-price">¥${room.realPrice.toLocaleString()}/晚</div>` : ''}
-                            </div>
-                        `;
-                    });
+            if (rows.length > 0) {
+                // 按日期→房型排序
+                rows.sort((a, b) => {
+                    if (a.date !== b.date) return a.date.localeCompare(b.date);
+                    return a.rmtypeDesc.localeCompare(b.rmtypeDesc);
                 });
+
+                html += `
+                <div style="overflow-x:auto;">
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>房型</th>
+                            <th>客房产品名称</th>
+                            <th>公共池</th>
+                            <th>预保留</th>
+                            <th>房价/晚</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                rows.forEach(row => {
+                    const total = row.pmsNum + row.blockNum;
+                    const availColor = total > 0 ? '#2e7d32' : '#d32f2f';
+                    const pmsText = row.pmsNum > 0 ? `${row.pmsNum}间` : '—';
+                    const blockText = row.blockNum > 0 ? `${row.blockNum}间` : '—';
+                    const priceText = row.realPrice > 0 ? `¥${row.realPrice.toLocaleString()}` : '—';
+                    html += `
+                        <tr>
+                            <td>${row.date}</td>
+                            <td><strong>${row.rmtypeDesc}</strong></td>
+                            <td>${row.productDesc || '—'}</td>
+                            <td style="color:${availColor};font-weight:600;">${pmsText}</td>
+                            <td style="color:${availColor};font-weight:600;">${blockText}</td>
+                            <td style="color:#C9A96E;font-weight:600;">${priceText}</td>
+                        </tr>
+                    `;
+                });
+                html += `
+                    </tbody>
+                </table>
+                </div>
+                `;
             } else {
                 html += `<div style="font-size:13px;color:#666;margin-top:8px;">暂无符合条件的库存数据</div>`;
             }
 
             html += '</div>';
             return html;
-        }
-
-        function renderRawData(data) {
-            const raw = JSON.stringify(data, null, 2);
-            return `
-                <details style="margin-top:12px;">
-                    <summary style="cursor:pointer;font-size:12px;color:#999;">查看原始数据</summary>
-                    <pre style="font-size:10px;background:#f5f5f5;padding:8px;border-radius:6px;overflow:auto;max-height:150px;margin-top:8px;">${raw.substring(0, 800)}${raw.length > 800 ? '...' : ''}</pre>
-                </details>
-            `;
         }
 
         // 回车发送
