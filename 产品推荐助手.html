@@ -900,6 +900,23 @@
                     return a.rmtypeDesc.localeCompare(b.rmtypeDesc);
                 });
 
+                // 预处理：合并相邻的同房型行
+                const merged = [];
+                rows.forEach(row => {
+                    const last = merged[merged.length - 1];
+                    if (last && last.rmtypeDesc === row.rmtypeDesc && last.date === row.date) {
+                        // 同日期同房型，追加产品
+                        last.products.push(row);
+                    } else {
+                        // 新行
+                        merged.push({
+                            date: row.date,
+                            rmtypeDesc: row.rmtypeDesc,
+                            products: [row]
+                        });
+                    }
+                });
+
                 html += `
                 <div style="overflow-x:auto;">
                 <table class="inventory-table">
@@ -915,22 +932,28 @@
                     </thead>
                     <tbody>
                 `;
-                rows.forEach(row => {
-                    const total = row.pmsNum + row.blockNum;
-                    const availColor = total > 0 ? '#2e7d32' : '#d32f2f';
-                    const pmsText = row.pmsNum > 0 ? `${row.pmsNum}间` : '0间';
-                    const blockText = row.blockNum > 0 ? `${row.blockNum}间` : '0间';
-                    const priceText = row.realPrice > 0 ? `¥${row.realPrice.toLocaleString()}` : '—';
-                    html += `
+                merged.forEach(group => {
+                    const count = group.products.length;
+                    group.products.forEach((row, idx) => {
+                        const total = row.pmsNum + row.blockNum;
+                        const availColor = total > 0 ? '#2e7d32' : '#d32f2f';
+                        const pmsText = row.pmsNum > 0 ? `${row.pmsNum}间` : '0间';
+                        const blockText = row.blockNum > 0 ? `${row.blockNum}间` : '0间';
+                        const priceText = row.realPrice > 0 ? `¥${row.realPrice.toLocaleString()}` : '—';
+                        const rmtypeCell = idx === 0
+                            ? `<td rowspan="${count}"><strong>${row.rmtypeDesc}</strong></td>`
+                            : '';
+                        html += `
                         <tr>
-                            <td>${row.date.slice(5)}</td>
-                            <td><strong>${row.rmtypeDesc}</strong></td>
+                            <td>${group.date.slice(5)}</td>
+                            ${rmtypeCell}
                             <td>${row.productDesc || '—'}</td>
                             <td style="color:${availColor};font-weight:600;">${pmsText}</td>
                             <td style="color:${availColor};font-weight:600;">${blockText}</td>
                             <td style="color:#C9A96E;font-weight:600;">${priceText}</td>
                         </tr>
                     `;
+                    });
                 });
                 html += `
                     </tbody>
