@@ -544,54 +544,54 @@
 
 
         /* 团期结果卡 */
-        .group-result-card {
-            background: #FAF8F5;
-            border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 12px;
+        /* 团期表格 */
+        .group-table-wrap {
+            overflow-x: auto;
+            margin-top: 8px;
         }
-
-        .group-result-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
-        }
-
-        .group-result-meta {
+        .group-table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 12px;
-            color: #999;
-            margin-bottom: 10px;
         }
-
-        .group-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px dashed #E8D5B5;
-            font-size: 13px;
+        .group-table th {
+            background: #f5efe7;
+            color: #666;
+            font-weight: 600;
+            padding: 7px 8px;
+            text-align: left;
+            white-space: nowrap;
+            border-bottom: 1.5px solid #e0d5c5;
         }
-
-        .group-row:last-child {
+        .group-table td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #f0ebe3;
+            vertical-align: middle;
+        }
+        .group-table tr:last-child td {
             border-bottom: none;
         }
-
-        .group-code {
+        .group-table tr:hover td {
+            background: #FDFAF6;
+        }
+        .group-table .col-code {
+            color: #888;
             font-size: 11px;
-            color: #999;
-            font-family: monospace;
-            margin-top: 2px;
+            white-space: nowrap;
         }
-
-        .group-date {
+        .group-table .col-date {
             color: #333;
-            font-weight: 500;
+            white-space: nowrap;
         }
-
-        .group-price {
+        .group-table .col-type {
             color: #C9A96E;
             font-weight: 600;
+            white-space: nowrap;
+        }
+        .group-table .col-price {
+            color: #C9A96E;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         .group-remain {
@@ -1193,32 +1193,58 @@
                 }
                 let html = '';
                 products.forEach(p => {
-                    const nights = p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '';
-                    const tags = (p.tags || '').split(',').filter(t => t && !['私享管家','主题团','自由行'].includes(t)).slice(0,3).join(' · ');
-                    html += `<div class="group-result-card">`;
-                    html += `<div class="group-result-title">${p.title || p.travel_type}</div>`;
-                    if (nights || tags) {
-                        html += `<div class="group-result-meta">${nights}${nights && tags ? ' · ' : ''}${tags}</div>`;
-                    }
                     const groups = p.groups || [];
+                    // 提取业务类型（主题团/私享管家/自由行）
+                    const tags = (p.tags || '').split(',');
+                    const bizType = tags.find(t => ['私享管家','主题团','自由行'].includes(t)) || '主题团';
+                    const nights = p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '';
+                    // 过滤掉业务类型，只显示其他标签
+                    const extraTags = tags.filter(t => !['私享管家','主题团','自由行'].includes(t)).slice(0,2).join(' · ');
+
+                    html += `<div style="margin-bottom:12px;">`;
+                    html += `<div style="font-size:13px;font-weight:600;color:#333;margin-bottom:2px;">${p.title || p.travel_type}</div>`;
+                    html += `<div style="font-size:11px;color:#999;margin-bottom:6px;">${bizType}${nights ? ' · ' + nights : ''}${extraTags ? ' · ' + extraTags : ''}</div>`;
+
                     if (groups.length === 0) {
                         html += `<div style="font-size:12px;color:#aaa;padding:6px 0;">暂无可售团期</div>`;
                     } else {
+                        html += `
+                        <div class="group-table-wrap">
+                        <table class="group-table">
+                            <thead>
+                                <tr>
+                                    <th>团期号</th>
+                                    <th>出发日期</th>
+                                    <th>库存</th>
+                                    <th>已占</th>
+                                    <th>剩余</th>
+                                    <th>售价</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                        `;
                         groups.forEach(g => {
-                            const endText = g.end && g.end !== g.begin ? ` → ${g.end}` : '';
+                            const total = g.total || 0;
+                            const remaining = g.remaining || 0;
+                            const booked = total - remaining;
+                            const beginDate = (g.begin || '').slice(5);
+                            const endDate = (g.end && g.end !== g.begin) ? ` → ${(g.end || '').slice(5)}` : '';
                             html += `
-                                <div class="group-row">
-                                    <div>
-                                        <div class="group-date">📅 ${g.begin}${endText}</div>
-                                        <div class="group-code">${g.code}</div>
-                                    </div>
-                                    <div style="text-align:right;">
-                                        <div class="group-price">¥${(g.price||0).toLocaleString()}/人</div>
-                                        <div class="group-remain">剩 ${g.remaining}位 / 共${g.total}位</div>
-                                    </div>
-                                </div>
+                                <tr>
+                                    <td class="col-code">${g.code || '—'}</td>
+                                    <td class="col-date">${beginDate}${endDate}</td>
+                                    <td>${total}位</td>
+                                    <td>${booked}位</td>
+                                    <td style="color:${remaining > 0 ? '#2e7d32' : '#d32f2f'};font-weight:600;">${remaining}位</td>
+                                    <td class="col-price">¥${(g.price||0).toLocaleString()}</td>
+                                </tr>
                             `;
                         });
+                        html += `
+                            </tbody>
+                        </table>
+                        </div>
+                        `;
                     }
                     html += `</div>`;
                 });

@@ -535,6 +535,56 @@
             background: #FDFAF6;
         }
 
+        /* 团期表格 */
+        .group-table-wrap {
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+        .group-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .group-table th {
+            background: #f5efe7;
+            color: #666;
+            font-weight: 600;
+            padding: 7px 8px;
+            text-align: left;
+            white-space: nowrap;
+            border-bottom: 1.5px solid #e0d5c5;
+        }
+        .group-table td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #f0ebe3;
+            vertical-align: middle;
+        }
+        .group-table tr:last-child td {
+            border-bottom: none;
+        }
+        .group-table tr:hover td {
+            background: #FDFAF6;
+        }
+        .group-table .col-code {
+            color: #888;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .group-table .col-date {
+            color: #333;
+            white-space: nowrap;
+        }
+        .group-table .col-type {
+            color: #C9A96E;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .group-table .col-price {
+            color: #C9A96E;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
         .inventory-loading {
             text-align: center;
             padding: 20px;
@@ -767,41 +817,64 @@
 
             let html = '';
             products.forEach(p => {
+                // 提取业务类型和行程规格
+                const tags = (p.tags || '').split(',');
+                const bizType = tags.find(t => ['私享管家','主题团','自由行'].includes(t)) || '主题团';
                 const nights = p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '';
-                const tags = (p.tags || '').split(',').filter(t => t && !['私享管家','主题团','自由行'].includes(t)).slice(0,3).join(' · ');
+                const extraTags = tags.filter(t => !['私享管家','主题团','自由行'].includes(t)).slice(0,2).join(' · ');
                 const title = p.title || p.travel_type || keyword;
 
-                html += `<div style="margin:12px 0;padding:14px;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">`;
-                html += `<div style="font-weight:600;color:#5a3e2b;margin-bottom:4px;">${title}</div>`;
-                if (nights || tags) {
-                    html += `<div style="font-size:12px;color:#999;margin-bottom:10px;">${nights}${nights && tags ? ' · ' : ''}${tags}</div>`;
-                }
+                html += `<div style="margin-bottom:14px;">`;
+                html += `<div style="font-size:13px;font-weight:600;color:#333;margin-bottom:2px;">${title}</div>`;
+                html += `<div style="font-size:11px;color:#999;margin-bottom:6px;">${bizType}${nights ? ' · ' + nights : ''}${extraTags ? ' · ' + extraTags : ''}</div>`;
 
                 const groups = p.groups || [];
                 if (groups.length === 0) {
-                    html += `<div style="font-size:13px;color:#aaa;">暂无可售团期</div>`;
+                    html += `<div style="font-size:12px;color:#aaa;padding:6px 0;">暂无可售团期</div>`;
                 } else {
+                    html += `
+                    <div class="group-table-wrap">
+                    <table class="group-table">
+                        <thead>
+                            <tr>
+                                <th>团期号</th>
+                                <th>出发日期</th>
+                                <th>库存</th>
+                                <th>已占</th>
+                                <th>剩余</th>
+                                <th>售价</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    `;
                     groups.forEach(g => {
-                        const endText = g.end && g.end !== g.begin ? ` → ${g.end}` : '';
+                        const total = g.total || 0;
+                        const remaining = g.remaining || 0;
+                        const booked = total - remaining;
+                        const beginDate = (g.begin || '').slice(5);
+                        const endDate = (g.end && g.end !== g.begin) ? ` → ${(g.end || '').slice(5)}` : '';
                         html += `
-                            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #f0f0f0;">
-                                <div>
-                                    <div style="font-size:13px;color:#333;">📅 ${g.begin}${endText}</div>
-                                    <div style="font-size:11px;color:#C9A96E;font-family:monospace;margin-top:2px;">${g.code}</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="font-size:14px;color:#c9a96e;font-weight:600;">¥${(g.price||0).toLocaleString()}/人</div>
-                                    <div style="font-size:11px;color:#999;margin-top:2px;">剩 ${g.remaining}位 / 共${g.total}位</div>
-                                </div>
-                            </div>
+                            <tr>
+                                <td class="col-code">${g.code || '—'}</td>
+                                <td class="col-date">${beginDate}${endDate}</td>
+                                <td>${total}位</td>
+                                <td>${booked}位</td>
+                                <td style="color:${remaining > 0 ? '#2e7d32' : '#d32f2f'};font-weight:600;">${remaining}位</td>
+                                <td class="col-price">¥${(g.price||0).toLocaleString()}</td>
+                            </tr>
                         `;
                     });
+                    html += `
+                        </tbody>
+                    </table>
+                    </div>
+                    `;
                 }
                 html += `</div>`;
             });
 
-            if (month && products.every(p => (p.groups||[]).length === 0)) {
-                html += `<p style="color:#999;font-size:13px;">💡 ${month} 暂无可售团期，可换个月份试试</p>`;
+            if (data.month && products.every(p => (p.groups||[]).length === 0)) {
+                html += `<p style="color:#999;font-size:13px;">💡 ${data.month} 暂无可售团期，可换个月份试试</p>`;
             }
 
             return html;
