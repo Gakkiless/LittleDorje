@@ -22,7 +22,7 @@
 
         .container {
             width: 100%;
-            max-width: 420px;
+            max-width: 680px;
             height: 100vh;
             max-height: 900px;
             background: #F8F6F3;
@@ -958,7 +958,7 @@
             messageDiv.className = `message ${isUser ? 'user' : ''}`;
             messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
             chatArea.appendChild(messageDiv);
-            chatArea.scrollTop = chatArea.scrollHeight;
+            // 不自动滚动，让用户自行浏览
             return messageDiv;
         }
 
@@ -976,7 +976,7 @@
                 </div>
             `;
             chatArea.appendChild(messageDiv);
-            chatArea.scrollTop = chatArea.scrollHeight;
+            // 不自动滚动
         }
 
         function removeLoading() {

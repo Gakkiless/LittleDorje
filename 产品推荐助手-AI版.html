@@ -22,7 +22,7 @@
 
         .container {
             width: 100%;
-            max-width: 420px;
+            max-width: 680px;
             height: 100vh;
             max-height: 900px;
             background: #F8F6F3;
@@ -1069,7 +1069,7 @@
             messageDiv.className = `message ${isUser ? 'user' : ''}`;
             messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
             chatArea.appendChild(messageDiv);
-            chatArea.scrollTop = chatArea.scrollHeight;
+            // 不自动滚动，让用户自行浏览
             return messageDiv;
         }
 
@@ -1087,7 +1087,7 @@
                 </div>
             `;
             chatArea.appendChild(messageDiv);
-            chatArea.scrollTop = chatArea.scrollHeight;
+            // 不自动滚动
         }
 
         function removeLoading() {
@@ -1211,7 +1211,6 @@
             placeholderDiv.className = 'message';
             placeholderDiv.innerHTML = `<div class="message-content" id="aiMsgContent"><div class="loading"><span></span><span></span><span></span></div></div>`;
             chatArea.appendChild(placeholderDiv);
-            chatArea.scrollTop = chatArea.scrollHeight;
 
             const msgContent = document.getElementById('aiMsgContent');
 
@@ -1258,13 +1257,12 @@
                             aiTextDiv.innerHTML = '<span style="font-size:11px;color:#C9A96E;font-weight:600;">✦ 小多吉为您分析</span><br><span id="aiTypingText"></span><span class="ai-cursor">▌</span>';
                             msgContent.appendChild(aiTextDiv);
                             productsRendered = true;
-                            chatArea.scrollTop = chatArea.scrollHeight;
+                            // 不自动滚动，让用户自行浏览
 
                         } else if (evt.type === 'token') {
                             aiText += evt.content;
                             const typingEl = document.getElementById('aiTypingText');
                             if (typingEl) typingEl.textContent = aiText;
-                            chatArea.scrollTop = chatArea.scrollHeight;
 
                         } else if (evt.type === 'done') {
                             // 移除光标
