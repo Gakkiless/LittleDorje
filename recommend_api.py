@@ -38,15 +38,22 @@ GROUP_API = "https://gds.songtsam.com/product-journey/bks/travelGroupProvider/li
 PRODUCT_API = "https://gds.songtsam.com/product-journey/bks/travelproduct/getTravelProductType"
 
 # ============ AI 模型配置 ============
-# 兼容 OpenAI 协议的 API（可替换为任意兼容端点）
-AI_API_URL = "https://api.hunyuan.cloud.tencent.com/v1/chat/completions"
-AI_MODEL = "hunyuan-turbo"
+# 智谱AI（GLM系列）- OpenAI 兼容协议
+AI_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+AI_MODEL = "glm-4.5-air"   # 智谱 GLM-4.5-Air，快速版
 AI_API_KEY = ""  # 从环境变量读取，见下方 get_ai_api_key()
 
 def get_ai_api_key() -> str:
-    import os
-    # 优先读环境变量 HUNYUAN_API_KEY，其次 OPENAI_API_KEY
-    return os.environ.get("HUNYUAN_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
+    """获取智谱 AI API Key（环境变量 > .token 文件）"""
+    key = os.environ.get("ZHIPU_API_KEY")
+    if key:
+        return key
+    token_file = Path(__file__).parent / ".token"
+    if token_file.exists():
+        for line in token_file.read_text().strip().splitlines():
+            if line.startswith("ZHIPU_API_KEY="):
+                return line.split("=", 1)[1].strip()
+    return ""
 
 
 # ============ Flask App ============
@@ -1205,7 +1212,7 @@ def ai_recommend():
             yield f"data: {_json.dumps({'type': 'products', 'data': structured}, ensure_ascii=False)}\n\n"
 
             if not api_key:
-                yield f"data: {_json.dumps({'type': 'token', 'content': '（AI分析服务未配置，请设置 HUNYUAN_API_KEY 环境变量）'}, ensure_ascii=False)}\n\n"
+                yield f"data: {_json.dumps({'type': 'token', 'content': '（AI服务未配置，请设置 ZHIPU_API_KEY 环境变量）'}, ensure_ascii=False)}\n\n"
                 yield f"data: {_json.dumps({'type': 'done'})}\n\n"
                 return
 
@@ -1217,6 +1224,7 @@ def ai_recommend():
                     json={
                         "model": AI_MODEL,
                         "stream": True,
+                        "thinking": {"type": "off"},  # 关闭思维链，直接出答案
                         "messages": [
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": user_prompt},
