@@ -1058,6 +1058,20 @@ def groups_direct():
         return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()})
 
 
+def _get_user_code_from_token(token: str) -> str:
+    """从 JWT token 中解码出 userCode（用于库存API）"""
+    try:
+        import base64
+        parts = token.split('.')
+        if len(parts) >= 2:
+            payload_b64 = parts[1] + '=' * (4 - len(parts[1]) % 4)
+            payload = json.loads(base64.b64decode(payload_b64))
+            return payload.get("userCode", "HL") or "HL"
+    except Exception:
+        pass
+    return "HL"
+
+
 @app.route("/api/inventory-direct", methods=["POST"])
 def inventory_direct():
     """
@@ -1081,6 +1095,7 @@ def inventory_direct():
             return jsonify({"success": False, "error": "缺少参数：hotel_codes/begin_date/end_date"})
 
         token = get_token()
+        user_code = _get_user_code_from_token(token)
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"} if token else {"Content-Type": "application/json"}
 
         resp = requests.post(INVENTORY_API_URL, headers=headers, json={
@@ -1091,14 +1106,15 @@ def inventory_direct():
             "beginDate": begin_date,
             "endDate": end_date,
             "hotelCodes": hotel_codes,
+            "userCode": user_code,
         }, timeout=15)
         resp.raise_for_status()
         data = resp.json()
 
-        # 过滤
+        # 过滤：sta 为空/I 均可，避开 OTA 和目的地套餐
         entries = data.get("retVal", []) or []
         filtered = [e for e in entries
-                    if e.get("sta") == "I"
+                    if (e.get("sta") in (None, "", "I"))
                     and not any(kw in (e.get("productDesc") or "") for kw in EXCLUDE_KEYWORDS)
                     and "目的地套餐" not in (e.get("categorySubDesc") or "")]
 

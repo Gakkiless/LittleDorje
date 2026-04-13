@@ -652,6 +652,18 @@
         // API配置
         const INVENTORY_API = 'https://gds.songtsam.com/product-room/bks/productType/listPrSingleOrderRoom';
 
+        // 从 JWT 解码 userCode（用于库存API）
+        function getUserCodeFromToken(token) {
+            try {
+                const parts = token.split('.');
+                if (parts.length >= 2) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    return payload.userCode || 'HL';
+                }
+            } catch (e) {}
+            return 'HL';
+        }
+
         // 固定请求参数
         const INVENTORY_DEFAULT_PARAMS = {
             hotelGroupCode: 'SONGTSAM',
@@ -878,12 +890,14 @@
             }
 
             try {
+                const userCode = getUserCodeFromToken(token);
                 const requestBody = {
                     ...INVENTORY_DEFAULT_PARAMS,
                     beginDate: beginDate,  // 格式: YYYY-MM-DD
                     endDate: endDate,
                     hotelCodes: [hotelCode],  // 数组格式
-                    rmtypes: roomTypes  // 可选房型代码数组
+                    rmtypes: roomTypes,  // 可选房型代码数组
+                    userCode: userCode,
                 };
 
                 const resp = await fetch(INVENTORY_API, {
@@ -920,8 +934,8 @@
         // 过滤库存数据
         function filterInventoryData(entries) {
             return entries.filter(entry => {
-                // 1. 产品状态必须是已上架（sta = 'I'）
-                if (entry.sta !== 'I') return false;
+                // 1. 产品状态：sta 为空或 'I' 才保留（null/空 表示有效房型）
+                if (entry.sta && entry.sta !== 'I') return false;
 
                 // 2. 产品名称不包含 OTA/飞猪/携程
                 const productDesc = entry.productDesc || '';

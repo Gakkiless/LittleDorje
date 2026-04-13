@@ -825,8 +825,8 @@
         // 过滤库存数据
         function filterInventoryData(entries) {
             return entries.filter(entry => {
-                // 1. 产品状态必须是已上架（sta = 'I'）
-                if (entry.sta !== 'I') return false;
+                // 1. 产品状态：sta 为空或 'I' 才保留（null/空 表示有效房型）
+                if (entry.sta && entry.sta !== 'I') return false;
 
                 // 2. 产品名称不包含 OTA/飞猪/携程
                 const productDesc = entry.productDesc || '';
