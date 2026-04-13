@@ -821,8 +821,8 @@
 
             let html = '';
             products.forEach(p => {
-                // 行程名称：优先用API返回的 travel_type_desc
-                const productName = p.travel_type_desc || p.title || p.travel_type || keyword;
+                // 行程名称：优先用API返回的 itinerary_desc（行程名称，非产品名称）
+                const productName = p.itinerary_desc || p.title || p.travel_type || keyword;
                 const specMatch = (productName).match(/(\d+晚\d+天)/);
                 const specText = specMatch ? specMatch[1] : (p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '');
                 const bizType = p.category_sub_desc || '主题团';

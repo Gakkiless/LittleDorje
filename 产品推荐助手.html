@@ -1198,8 +1198,8 @@
                 let html = '';
                 products.forEach(p => {
                     const groups = p.groups || [];
-                    // 行程名称：优先用API返回的 travel_type_desc（包含完整品名），否则用向量库 title
-                    const productName = p.travel_type_desc || p.title || p.travel_type || '未知产品';
+                    // 行程名称：优先用API返回的 itinerary_desc（行程名称，非产品名称）
+                    const productName = p.itinerary_desc || p.title || p.travel_type || '未知产品';
                     // 从行程名称中解析行程规格（"5晚6天"）
                     const specMatch = (productName).match(/(\d+晚\d+天)/);
                     const specText = specMatch ? specMatch[1] : (p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '');

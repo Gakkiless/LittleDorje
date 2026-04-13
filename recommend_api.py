@@ -1008,7 +1008,7 @@ def groups_direct():
                             gs = month_gs
                     # 补充元数据（取第一条团期的字段）
                     if gs:
-                        p["travel_type_desc"] = gs[0].get("travelTypeDesc", "")
+                        p["itinerary_desc"] = gs[0].get("itineraryDesc", "")
                         p["category_sub_desc"] = gs[0].get("categorySubDesc", "")
                         p["specifications_desc"] = gs[0].get("specificationsDesc", "")
                     p["groups"] = [
@@ -1077,7 +1077,7 @@ def groups_direct():
 
                 # 用 API 团期数据补充元数据
                 if clean:
-                    p["travel_type_desc"] = clean[0].get("travelTypeDesc", "") or p.get("title", "")
+                    p["itinerary_desc"] = clean[0].get("itineraryDesc", "") or p.get("title", "")
                     p["category_sub_desc"] = clean[0].get("categorySubDesc", "") or "主题团"
                     p["specifications_desc"] = clean[0].get("specificationsDesc", "") or ""
 
