@@ -1564,6 +1564,95 @@
             }
         }
 
+        // 从对话文本中提取月份
+        function extractMonthFromQuery(text) {
+            const now = new Date();
+            const thisYear = now.getFullYear();
+            // "4月" / "04月"
+            const monthMatch = text.match(/(\d{1,2})月/);
+            if (monthMatch) {
+                const month = parseInt(monthMatch[1]);
+                if (month >= 1 && month <= 12) {
+                    return `${thisYear}-${String(month).padStart(2, '0')}`;
+                }
+            }
+            // "本月" / "这个月"
+            if (text.includes('本月') || text.includes('这个月')) {
+                return `${thisYear}-${String(now.getMonth()+1).padStart(2, '0')}`;
+            }
+            // "下个月"
+            if (text.includes('下个月')) {
+                const next = new Date(thisYear, now.getMonth()+1, 1);
+                return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2, '0')}`;
+            }
+            return null;
+        }
+
+        // 从对话文本中提取产品关键词（去掉意图词）
+        function extractProductKeyword(text) {
+            let kw = text;
+            const intentWords = ['团期号', '团期', '什么时候出发', '几月出发', '出团日期', '出发日期', '哪天出发', '有哪些日期', '有团吗', '有团'];
+            intentWords.forEach(w => { kw = kw.replace(w, ''); });
+            kw = kw.replace(/[的是有查一下帮我吗？?。，、，]/g, '').trim();
+            return kw;
+        }
+
+        // ---------- 直接查团期（对话中直接返回结果） ----------
+        async function queryGroupsDirect(keyword, month) {
+            try {
+                const resp = await fetch(`${API_BASE}/api/groups-direct`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyword, month, max_groups: 20 })
+                });
+                const data = await resp.json();
+                if (!data.success) {
+                    return `<p style="color:#d32f2f;font-size:13px;">⚠️ ${data.error || '查询失败'}</p>`;
+                }
+                const products = data.products || [];
+                if (products.length === 0) {
+                    return `<p style="font-size:13px;color:#999;">未找到「${keyword}」相关产品，请换个关键词试试～</p>`;
+                }
+                let html = '';
+                products.forEach(p => {
+                    const nights = p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '';
+                    const tags = (p.tags || '').split(',').filter(t => t && !['私享管家','主题团','自由行'].includes(t)).slice(0,3).join(' · ');
+                    html += `<div class="group-result-card">`;
+                    html += `<div class="group-result-title">${p.title || p.travel_type}</div>`;
+                    if (nights || tags) {
+                        html += `<div class="group-result-meta">${nights}${nights && tags ? ' · ' : ''}${tags}</div>`;
+                    }
+                    const groups = p.groups || [];
+                    if (groups.length === 0) {
+                        html += `<div style="font-size:12px;color:#aaa;padding:6px 0;">暂无可售团期</div>`;
+                    } else {
+                        groups.forEach(g => {
+                            const endText = g.end && g.end !== g.begin ? ` → ${g.end}` : '';
+                            html += `
+                                <div class="group-row">
+                                    <div>
+                                        <div class="group-date">📅 ${g.begin}${endText}</div>
+                                        <div class="group-code">${g.code}</div>
+                                    </div>
+                                    <div style="text-align:right;">
+                                        <div class="group-price">¥${(g.price||0).toLocaleString()}/人</div>
+                                        <div class="group-remain">剩 ${g.remaining}位 / 共${g.total}位</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    html += `</div>`;
+                });
+                if (month && products.every(p => (p.groups||[]).length === 0)) {
+                    html += `<p style="font-size:12px;color:#aaa;margin-top:8px;">💡 ${month} 暂无可售团期，可去掉月份筛选</p>`;
+                }
+                return html;
+            } catch (e) {
+                return `<p style="color:#d32f2f;font-size:13px;">⚠️ 网络错误：${e.message}</p>`;
+            }
+        }
+
         // ============================================
         // 发送消息
         // ============================================
@@ -1586,24 +1675,22 @@
             // 显示加载
             addLoading();
 
-            // 检测"查团期号"意图
-            const groupLookupKeywords = ['团期号', '团期', '什么时候出发', '几月出发', '出团日期'];
-            const isGroupLookup = groupLookupKeywords.some(k => text.includes(k));
-            if (isGroupLookup) {
+            // 意图识别顺序：团期号 → 库存 → AI推荐
+
+            // ---------- 1. 查团期号意图 ----------
+            const groupKeywords = ['团期号', '团期', '什么时候出发', '几月出发', '出团日期', '出发日期', '哪天出发', '有哪些日期', '有团吗', '有团', '团'];
+            const isGroupQuery = groupKeywords.some(k => text.includes(k));
+            if (isGroupQuery) {
+                const keyword = extractProductKeyword(text);
+                const month = extractMonthFromQuery(text);
+                const resultHtml = await queryGroupsDirect(keyword || '', month);
                 removeLoading();
+                addMessage(resultHtml);
                 sendBtn.disabled = false;
-                // 提取产品名关键词（去掉意图词）
-                let kw = text;
-                groupLookupKeywords.forEach(k => { kw = kw.replace(k, ''); });
-                kw = kw.replace(/[的是有查一下帮我吗？?]/g, '').trim();
-                openLookup('groups');
-                if (kw) {
-                    document.getElementById('groupKeyword').value = kw;
-                }
                 return;
             }
 
-            // 解析查询意图
+            // ---------- 2. 查酒店库存意图 ----------
             const parsed = parseQueryForInventory(text);
 
             if (parsed && parsed.type === 'need_hotel') {
@@ -1625,15 +1712,12 @@
             }
 
             if (parsed && parsed.type === 'inventory') {
-                // 需要日期但没解析到
                 if (!parsed.beginDate) {
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
                     parsed.beginDate = formatDate(tomorrow);
                     parsed.endDate = formatDate(new Date(tomorrow.setDate(tomorrow.getDate() + 1)));
                 }
-
-                // 执行库存查询
                 const result = await queryInventory(parsed.hotelCode, parsed.beginDate, parsed.endDate);
                 removeLoading();
                 addMessage(renderInventoryResult(result));
@@ -1641,7 +1725,7 @@
                 return;
             }
 
-            // 调用后端推荐API
+            // ---------- 3. 默认走推荐API ----------
             removeLoading();
             await doRecommend(text);
             sendBtn.disabled = false;
