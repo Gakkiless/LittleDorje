@@ -37,6 +37,17 @@ ITINERARY_API = "https://gds.songtsam.com/product-journey/bks/itinerary/getTrave
 GROUP_API = "https://gds.songtsam.com/product-journey/bks/travelGroupProvider/listTravelGroupForOrder"
 PRODUCT_API = "https://gds.songtsam.com/product-journey/bks/travelproduct/getTravelProductType"
 
+# ============ AI 模型配置 ============
+# 兼容 OpenAI 协议的 API（可替换为任意兼容端点）
+AI_API_URL = "https://api.hunyuan.cloud.tencent.com/v1/chat/completions"
+AI_MODEL = "hunyuan-turbo"
+AI_API_KEY = ""  # 从环境变量读取，见下方 get_ai_api_key()
+
+def get_ai_api_key() -> str:
+    import os
+    # 优先读环境变量 HUNYUAN_API_KEY，其次 OPENAI_API_KEY
+    return os.environ.get("HUNYUAN_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
+
 # ============ 成本接口配置 ============
 COST_APIS = {
     "profit": "https://api.songtsam.com/quotation_center/bks/profitItemManage/pageQuery",
@@ -952,6 +963,198 @@ def parse():
         return jsonify({"success": True, "requirements": req, "strategy": strategy})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+
+# ============ AI 推荐路由 ============
+@app.route("/api/ai-recommend", methods=["POST"])
+def ai_recommend():
+    """
+    AI推荐接口（SSE流式）
+    请求: {"query": "2人情侣去林芝看桃花", "preferred_month": "2026-05"}
+    返回: text/event-stream
+      data: {"type":"products","data":{...}}    # 先推产品结构化数据
+      data: {"type":"token","content":"..."}    # 再流式推 AI 分析文字
+      data: {"type":"done"}                     # 结束
+    """
+    import json as _json
+    from flask import Response, stream_with_context
+
+    try:
+        body = request.get_json()
+        query = body.get("query", "")
+        preferred_month = body.get("preferred_month", None)
+        if not query:
+            return jsonify({"success": False, "error": "请输入您的需求"})
+
+        # 1. 解析需求
+        req = parse_requirements(query)
+        if not preferred_month:
+            m = re.search(r'(\d+)月', query)
+            if m:
+                preferred_month = f"2026-{int(m.group(1)):02d}"
+
+        strategy = get_display_strategy(req.get("people", 0), req.get("type"), req.get("trip_type"))
+
+        # 2. 向量搜索
+        vector_results = []
+        if HAS_VECTOR_DB:
+            try:
+                vector_results = query_vectorstore(query, n_results=100)
+            except Exception:
+                pass
+        for p in vector_results:
+            score_product(p, req)
+        vector_results.sort(key=lambda x: x.get("score", 0), reverse=True)
+
+        # 3. 取Top20，查团期
+        top_products = vector_results[:20]
+        token = get_token()
+        for p in top_products:
+            tid = p.get("metadata", {}).get("travel_type")
+            p["groups"] = query_groups(tid, token, preferred_month=preferred_month) if tid else []
+
+        # 4. 按形态分组（复用原逻辑）
+        by_type = {"私享管家": [], "主题团": [], "自由行": []}
+        season = req.get("season", "")
+        for p in top_products:
+            meta = p.get("metadata", {})
+            product_tags = meta.get("tags", "")
+            category_sub = meta.get("category_sub", "")
+            title = meta.get("title", "")
+            supported = [t for t in ["私享管家", "主题团", "自由行"] if t in product_tags or t in category_sub]
+            if not supported:
+                continue
+            p["supported_types"] = supported
+            is_season = (season == "杜鹃季" and "杜鹃季" in title) or \
+                        (season == "桃花季" and ("桃花季" in title or "桃花季" in product_tags))
+            if is_season:
+                for ptype in supported:
+                    by_type[ptype].append(p)
+            else:
+                by_type[supported[0]].append(p)
+
+        products_by_type = {}
+        for ptype in strategy.get("sort_priority", ["私享管家", "主题团", "自由行"]):
+            type_products = sorted(by_type.get(ptype, []),
+                                   key=lambda x: (1 if x.get("groups") else 0, x.get("score", 0)),
+                                   reverse=True)
+            items = []
+            for p in type_products[:3]:
+                meta = p.get("metadata", {})
+                items.append({
+                    "id": p.get("id"),
+                    "title": meta.get("title", ""),
+                    "tags": meta.get("tags", ""),
+                    "score": round(p.get("score", 0), 2),
+                    "reasons": p.get("reasons", []),
+                    "supported_types": p.get("supported_types", []),
+                    "nights": meta.get("itinerary_nights"),
+                    "days": meta.get("itinerary_days"),
+                    "travel_type": meta.get("travel_type", ""),
+                    "groups": [
+                        {"begin": g.get("groupBeginDate", "")[:10],
+                         "price": g.get("startingPrice", 0),
+                         "remaining": g.get("saleNum", 0),
+                         "code": g.get("travelGroupCode", "")}
+                        for g in p.get("groups", [])
+                    ],
+                })
+            if items:
+                products_by_type[ptype] = items
+
+        structured = {
+            "success": True,
+            "requirements": req,
+            "strategy": strategy,
+            "products_by_type": products_by_type,
+        }
+
+        # 5. 构造给 AI 的 prompt
+        product_list_lines = []
+        for ptype, items in products_by_type.items():
+            for item in items:
+                title = item.get("title", "")
+                nights = item.get("nights", "")
+                days = item.get("days", "")
+                tags_raw = item.get("tags", "")
+                groups = item.get("groups", [])
+                duration = f"{nights}晚{days}天" if nights else ""
+                tags_str = "、".join([t for t in tags_raw.split(",") if t and t not in ["私享管家","主题团","自由行"]][:4])
+                groups_str = "、".join([f"{g['begin']} ¥{g['price']}/人 剩{g['remaining']}位" for g in groups]) if groups else "暂无近期团期"
+                product_list_lines.append(
+                    f"【{ptype}】{title} {duration} | 标签: {tags_str} | 团期: {groups_str} | 推荐理由: {', '.join(item.get('reasons', []))}"
+                )
+        product_list_str = "\n".join(product_list_lines) if product_list_lines else "（未检索到相关产品）"
+
+        tip = strategy.get("tip", "")
+        system_prompt = (
+            "你是松赞旅行的金牌顾问小多吉，专注于滇藏川高端精品旅行。"
+            "你的风格：热情、专业、简洁，像朋友一样说话，不过度推销。"
+            "重要：禁止捏造不在列表中的产品或团期数字。"
+        )
+        user_prompt = (
+            f"客户需求：{query}\n"
+            f"策略提示：{tip}\n\n"
+            f"以下是为客户匹配的产品列表：\n{product_list_str}\n\n"
+            "请根据以上产品，用3-5句话帮客户做一个简短、有温度的推荐总结。"
+            "格式：先说一句为什么推荐，再列2-3个重点产品（名称+亮点+有团期优先），最后一句鼓励客户咨询。"
+            "不要使用Markdown符号，直接纯文字输出。"
+        )
+
+        api_key = get_ai_api_key()
+
+        def generate():
+            # 先推结构化产品数据
+            yield f"data: {_json.dumps({'type': 'products', 'data': structured}, ensure_ascii=False)}\n\n"
+
+            if not api_key:
+                yield f"data: {_json.dumps({'type': 'token', 'content': '（AI分析服务未配置，请设置 HUNYUAN_API_KEY 环境变量）'}, ensure_ascii=False)}\n\n"
+                yield f"data: {_json.dumps({'type': 'done'})}\n\n"
+                return
+
+            # 调用 AI 流式接口
+            try:
+                ai_resp = requests.post(
+                    AI_API_URL,
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": AI_MODEL,
+                        "stream": True,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ]
+                    },
+                    stream=True,
+                    timeout=30
+                )
+                for line in ai_resp.iter_lines():
+                    if not line:
+                        continue
+                    line_str = line.decode("utf-8") if isinstance(line, bytes) else line
+                    if line_str.startswith("data: "):
+                        chunk_str = line_str[6:]
+                        if chunk_str.strip() == "[DONE]":
+                            break
+                        try:
+                            chunk = _json.loads(chunk_str)
+                            delta = chunk.get("choices", [{}])[0].get("delta", {})
+                            content = delta.get("content", "")
+                            if content:
+                                yield f"data: {_json.dumps({'type': 'token', 'content': content}, ensure_ascii=False)}\n\n"
+                        except Exception:
+                            pass
+            except Exception as e:
+                yield f"data: {_json.dumps({'type': 'token', 'content': f'（AI服务暂时不可用：{str(e)[:50]}）'}, ensure_ascii=False)}\n\n"
+
+            yield f"data: {_json.dumps({'type': 'done'})}\n\n"
+
+        return Response(stream_with_context(generate()), mimetype="text/event-stream",
+                        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    except Exception as e:
+        import traceback
+        return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()})
 
 
 # ============ 启动 ============
