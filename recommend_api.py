@@ -842,6 +842,273 @@ def recommend():
         return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()})
 
 
+@app.route("/api/groups-direct", methods=["POST"])
+def groups_direct():
+    """
+    直查团期接口（不走推荐算法）
+    请求: {
+        "keyword": "亚丁远山",       // 产品名关键词
+        "month": "2026-05",         // 可选，优先月份
+        "max_groups": 20            // 可选，最多返回几个团期，默认20
+    }
+    返回: {
+        "success": true,
+        "products": [
+            {
+                "travel_type": "ST-YDYYY-ZT",
+                "title": "亚丁的远山...",
+                "groups": [
+                    {
+                        "code": "ST-YDYYY-ZT-20260512",
+                        "begin": "2026-05-12",
+                        "end": "2026-05-18",
+                        "price": 12800,
+                        "remaining": 4,
+                        "total": 12
+                    }
+                ]
+            }
+        ]
+    }
+    """
+    try:
+        body = request.get_json() or {}
+        keyword = body.get("keyword", "").strip()
+        month = body.get("month", None)
+        max_groups = int(body.get("max_groups", 20))
+
+        if not keyword:
+            return jsonify({"success": False, "error": "请输入产品名关键词"})
+
+        token = get_token()
+        if not token:
+            return jsonify({"success": False, "error": "Token获取失败，请检查账号配置"})
+
+        # 先通过向量库查找匹配产品
+        matched_products = []
+        if HAS_VECTOR_DB:
+            try:
+                results = query_vectorstore(keyword, n_results=30)
+                for p in results:
+                    title = p.get("metadata", {}).get("title", "")
+                    travel_type = p.get("metadata", {}).get("travel_type", "")
+                    # 关键词匹配：标题包含关键词
+                    if keyword and any(kw in title for kw in keyword.split()):
+                        matched_products.append({
+                            "travel_type": travel_type,
+                            "title": title,
+                            "tags": p.get("metadata", {}).get("tags", ""),
+                            "nights": p.get("metadata", {}).get("itinerary_nights"),
+                            "days": p.get("metadata", {}).get("itinerary_days"),
+                        })
+                    # 模糊匹配：向量距离足够近且有travel_type
+                    elif p.get("distance", 1) < 0.4 and travel_type:
+                        matched_products.append({
+                            "travel_type": travel_type,
+                            "title": title,
+                            "tags": p.get("metadata", {}).get("tags", ""),
+                            "nights": p.get("metadata", {}).get("itinerary_nights"),
+                            "days": p.get("metadata", {}).get("itinerary_days"),
+                        })
+
+                # 去重（按 travel_type）
+                seen = set()
+                deduped = []
+                for p in matched_products:
+                    tt = p.get("travel_type", "")
+                    if tt and tt not in seen:
+                        seen.add(tt)
+                        deduped.append(p)
+                matched_products = deduped[:10]
+            except Exception as e:
+                print(f"[WARN] 向量库查询失败: {e}")
+
+        # 如果向量库没结果，fallback：直接全量拉团期，按关键词过滤
+        if not matched_products:
+            try:
+                all_groups = []
+                for page in [0, 100, 200]:
+                    data = api_post(
+                        f"{GROUP_API}?firstResult={page}&pageSize=100&unitCode=SONGTSAM",
+                        {},
+                        token=token
+                    )
+                    groups = data.get("retVal", {}).get("datas", [])
+                    if isinstance(groups, list):
+                        all_groups.extend(groups)
+                    else:
+                        break
+
+                # 按关键词过滤团期
+                filtered = [g for g in all_groups
+                            if any(kw in (g.get("travelTypeName", "") + g.get("travelGroupCode", ""))
+                                   for kw in keyword.split())]
+
+                # 按 travelType 分组
+                by_type = {}
+                for g in filtered:
+                    tt = g.get("travelType", "")
+                    name = g.get("travelTypeName", "")
+                    if tt not in by_type:
+                        by_type[tt] = {"travel_type": tt, "title": name, "tags": "", "nights": None, "days": None}
+                    if "groups" not in by_type[tt]:
+                        by_type[tt]["groups"] = []
+                    by_type[tt]["groups"].append(g)
+
+                result_products = []
+                for p in by_type.values():
+                    gs = p.pop("groups", [])
+                    gs = [g for g in gs if g.get("saleNum", 0) > 0]
+                    gs.sort(key=lambda x: x.get("groupBeginDate", ""))
+                    if month:
+                        month_gs = [g for g in gs if g.get("groupBeginDate", "").startswith(month)]
+                        if month_gs:
+                            gs = month_gs
+                    p["groups"] = [
+                        {
+                            "code": g.get("travelGroupCode", ""),
+                            "begin": g.get("groupBeginDate", "")[:10],
+                            "end": g.get("groupEndDate", "")[:10],
+                            "price": g.get("startingPrice", 0),
+                            "remaining": g.get("saleNum", 0),
+                            "total": g.get("productNum", 0),
+                        }
+                        for g in gs[:max_groups]
+                    ]
+                    result_products.append(p)
+
+                return jsonify({
+                    "success": True,
+                    "keyword": keyword,
+                    "month": month,
+                    "source": "fallback_group_api",
+                    "products": result_products
+                })
+
+            except Exception as e:
+                import traceback
+                return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()})
+
+        # 有向量库结果：逐个查团期
+        result_products = []
+        for p in matched_products:
+            tid = p.get("travel_type")
+            if not tid:
+                p["groups"] = []
+                result_products.append(p)
+                continue
+
+            try:
+                all_groups = []
+                for page in [0, 100]:
+                    data = api_post(
+                        f"{GROUP_API}?firstResult={page}&pageSize=100&unitCode=SONGTSAM",
+                        {"travelType": tid},
+                        token=token
+                    )
+                    groups = data.get("retVal", {}).get("datas", [])
+                    if isinstance(groups, list):
+                        all_groups.extend(groups)
+
+                # 去重
+                seen_code = set()
+                unique = []
+                for g in all_groups:
+                    code = g.get("travelGroupCode", "")
+                    if code and code not in seen_code:
+                        seen_code.add(code)
+                        unique.append(g)
+
+                available = [g for g in unique if g.get("saleNum", 0) > 0]
+                available.sort(key=lambda x: x.get("groupBeginDate", ""))
+
+                # 优先指定月份
+                display = available
+                if month:
+                    month_gs = [g for g in available if g.get("groupBeginDate", "").startswith(month)]
+                    if month_gs:
+                        display = month_gs
+
+                p["groups"] = [
+                    {
+                        "code": g.get("travelGroupCode", ""),
+                        "begin": g.get("groupBeginDate", "")[:10],
+                        "end": g.get("groupEndDate", "")[:10],
+                        "price": g.get("startingPrice", 0),
+                        "remaining": g.get("saleNum", 0),
+                        "total": g.get("productNum", 0),
+                    }
+                    for g in display[:max_groups]
+                ]
+            except Exception as e:
+                p["groups"] = []
+
+            result_products.append(p)
+
+        return jsonify({
+            "success": True,
+            "keyword": keyword,
+            "month": month,
+            "source": "vector_db",
+            "products": result_products
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()})
+
+
+@app.route("/api/inventory-direct", methods=["POST"])
+def inventory_direct():
+    """
+    直查酒店库存接口（后端代理，解决前端CORS）
+    请求: {
+        "hotel_codes": ["STNJBW"],
+        "begin_date": "2026-05-01",
+        "end_date": "2026-05-03"
+    }
+    """
+    INVENTORY_API_URL = "https://gds.songtsam.com/product-room/bks/productType/listPrSingleOrderRoom"
+    EXCLUDE_KEYWORDS = ['OTA', '飞猪', '携程']
+
+    try:
+        body = request.get_json() or {}
+        hotel_codes = body.get("hotel_codes", [])
+        begin_date = body.get("begin_date", "")
+        end_date = body.get("end_date", "")
+
+        if not hotel_codes or not begin_date or not end_date:
+            return jsonify({"success": False, "error": "缺少参数：hotel_codes/begin_date/end_date"})
+
+        token = get_token()
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"} if token else {"Content-Type": "application/json"}
+
+        resp = requests.post(INVENTORY_API_URL, headers=headers, json={
+            "hotelGroupCode": "SONGTSAM",
+            "otaChannel": "CRS",
+            "maxMemberLevel": "002",
+            "unitCode": "SONGTSAM",
+            "beginDate": begin_date,
+            "endDate": end_date,
+            "hotelCodes": hotel_codes,
+        }, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+
+        # 过滤
+        entries = data.get("retVal", []) or []
+        filtered = [e for e in entries
+                    if e.get("sta") == "I"
+                    and not any(kw in (e.get("productDesc") or "") for kw in EXCLUDE_KEYWORDS)
+                    and "目的地套餐" not in (e.get("categorySubDesc") or "")]
+
+        return jsonify({"success": True, "retVal": filtered})
+
+    except Exception as e:
+        import traceback
+        return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()})
+
+
 @app.route("/api/health", methods=["GET"])
 def health():
     """健康检查"""

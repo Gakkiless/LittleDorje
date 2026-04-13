@@ -532,6 +532,223 @@
             padding: 20px;
             color: #999;
         }
+
+        /* 快捷直查按钮 */
+        .quick-lookup-btns {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .ql-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            background: #fff;
+            border: 1.5px solid #E8D5B5;
+            border-radius: 14px;
+            padding: 14px 22px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #5a3e2b;
+            font-family: inherit;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(201,169,110,0.10);
+        }
+
+        .ql-btn:active {
+            background: #FAF6EF;
+            transform: scale(0.97);
+        }
+
+        .ql-icon {
+            font-size: 26px;
+        }
+
+        /* 直查抽屉 */
+        .lookup-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            z-index: 100;
+        }
+
+        .lookup-overlay.show {
+            display: block;
+        }
+
+        .lookup-panel {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            z-index: 101;
+            transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+
+        .lookup-panel.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .lookup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px 10px;
+            border-bottom: 1px solid #f0ebe3;
+        }
+
+        .lookup-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .lookup-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #999;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .lookup-body {
+            padding: 16px 20px 32px;
+        }
+
+        .lookup-field {
+            margin-bottom: 14px;
+        }
+
+        .lookup-field label {
+            display: block;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .lookup-field input,
+        .lookup-field select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #E8D5B5;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #333;
+            background: #FDFAF6;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .lookup-field input:focus,
+        .lookup-field select:focus {
+            border-color: #C9A96E;
+        }
+
+        .lookup-field-row {
+            display: flex;
+        }
+
+        .lookup-submit {
+            width: 100%;
+            background: #C9A96E;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 13px;
+            font-size: 15px;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 4px;
+            transition: opacity 0.2s;
+        }
+
+        .lookup-submit:active {
+            opacity: 0.85;
+        }
+
+        .lookup-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .lookup-result {
+            margin-top: 16px;
+        }
+
+        /* 团期结果卡 */
+        .group-result-card {
+            background: #FAF8F5;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .group-result-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .group-result-meta {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .group-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #E8D5B5;
+            font-size: 13px;
+        }
+
+        .group-row:last-child {
+            border-bottom: none;
+        }
+
+        .group-code {
+            font-size: 11px;
+            color: #999;
+            font-family: monospace;
+            margin-top: 2px;
+        }
+
+        .group-date {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .group-price {
+            color: #C9A96E;
+            font-weight: 600;
+        }
+
+        .group-remain {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .no-groups-tip {
+            text-align: center;
+            color: #aaa;
+            font-size: 13px;
+            padding: 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -552,6 +769,87 @@
                 <div class="welcome-subtitle">是您的产品助手</div>
                 <div class="welcome-desc">
                     我可以为你快速解答旅行产品的行程信息、价格等问题，能推荐适合的旅行产品，也可以帮您快速下单哦
+                </div>
+                <!-- 快捷直查入口 -->
+                <div class="quick-lookup-btns">
+                    <button class="ql-btn" onclick="openLookup('groups')">
+                        <span class="ql-icon">📆</span>
+                        <span>查团期号</span>
+                    </button>
+                    <button class="ql-btn" onclick="openLookup('hotel')">
+                        <span class="ql-icon">🏨</span>
+                        <span>查酒店库存</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 直查抽屉（团期/酒店库存） -->
+        <div class="lookup-overlay" id="lookupOverlay" onclick="closeLookup()"></div>
+        <div class="lookup-panel" id="lookupPanel">
+            <!-- 团期查询面板 -->
+            <div id="panelGroups" class="lookup-pane">
+                <div class="lookup-header">
+                    <span class="lookup-title">📆 查团期号</span>
+                    <button class="lookup-close" onclick="closeLookup()">✕</button>
+                </div>
+                <div class="lookup-body">
+                    <div class="lookup-field">
+                        <label>产品名称</label>
+                        <input type="text" id="groupKeyword" placeholder="如：亚丁远山、梅里、雪山圣湖" />
+                    </div>
+                    <div class="lookup-field">
+                        <label>月份（选填）</label>
+                        <input type="month" id="groupMonth" />
+                    </div>
+                    <button class="lookup-submit" onclick="doGroupLookup()">查询团期</button>
+                    <div id="groupResult" class="lookup-result"></div>
+                </div>
+            </div>
+            <!-- 酒店库存面板 -->
+            <div id="panelHotel" class="lookup-pane" style="display:none;">
+                <div class="lookup-header">
+                    <span class="lookup-title">🏨 查酒店库存</span>
+                    <button class="lookup-close" onclick="closeLookup()">✕</button>
+                </div>
+                <div class="lookup-body">
+                    <div class="lookup-field">
+                        <label>酒店</label>
+                        <select id="hotelSelect">
+                            <option value="">请选择酒店</option>
+                            <option value="STNJBW">南迦巴瓦山居</option>
+                            <option value="STML">梅里山居</option>
+                            <option value="STSHYL">石月亮山居</option>
+                            <option value="STLKSGL">香格里拉林卡</option>
+                            <option value="STLG">绿谷山居</option>
+                            <option value="STTC">塔城山居</option>
+                            <option value="STBZL">奔子栏山居</option>
+                            <option value="STBZHL">丙中洛山居</option>
+                            <option value="STCZH">茨中山居</option>
+                            <option value="STLKBSC">巴松措林卡</option>
+                            <option value="STLKLS">拉萨林卡</option>
+                            <option value="STBBZP">百巴帐篷营地</option>
+                            <option value="STRWLG">来古山居</option>
+                            <option value="STBMLK">波密山居</option>
+                            <option value="STLKLJ">丽江山居</option>
+                            <option value="STPELG">普洱绿谷</option>
+                            <option value="STYD">亚丁山居</option>
+                            <option value="STMKRM">如美山居</option>
+                            <option value="LGLHOTEL">泸沽湖英迪格</option>
+                        </select>
+                    </div>
+                    <div class="lookup-field lookup-field-row">
+                        <div style="flex:1;">
+                            <label>入住</label>
+                            <input type="date" id="hotelCheckin" />
+                        </div>
+                        <div style="flex:1;margin-left:10px;">
+                            <label>离店</label>
+                            <input type="date" id="hotelCheckout" />
+                        </div>
+                    </div>
+                    <button class="lookup-submit" onclick="doHotelLookup()">查库存</button>
+                    <div id="hotelResult" class="lookup-result"></div>
                 </div>
             </div>
         </div>
@@ -638,15 +936,7 @@
         };
 
         // API配置
-        const INVENTORY_API = 'https://gds.songtsam.com/product-room/bks/productType/listPrSingleOrderRoom';
-
-        // 固定请求参数
-        const INVENTORY_DEFAULT_PARAMS = {
-            hotelGroupCode: 'SONGTSAM',
-            otaChannel: 'CRS',
-            maxMemberLevel: '002',
-            unitCode: 'SONGTSAM'
-        };
+        const API_BASE = 'http://localhost:5123';
 
         // ============================================
         // 自然语言解析
@@ -727,51 +1017,35 @@
         }
 
         // ============================================
-        // 库存查询
+        // 库存查询（通过后端代理）
         // ============================================
         async function queryInventory(hotelCode, beginDate, endDate, roomTypes = null) {
-            const token = localStorage.getItem('songtsam_auth_token');
-            if (!token) {
-                return {
-                    error: true,
-                    message: '请先在设置中配置 Authorization Token'
-                };
-            }
-
             try {
-                const requestBody = {
-                    ...INVENTORY_DEFAULT_PARAMS,
-                    beginDate: beginDate,  // 格式: YYYY-MM-DD
-                    endDate: endDate,
-                    hotelCodes: [hotelCode],  // 数组格式
-                    rmtypes: roomTypes  // 可选房型代码数组
-                };
-
-                const resp = await fetch(INVENTORY_API, {
+                const resp = await fetch(`${API_BASE}/api/inventory-direct`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hotel_codes: [hotelCode],
+                        begin_date: beginDate,
+                        end_date: endDate
+                    })
                 });
 
                 if (!resp.ok) {
                     const errText = await resp.text();
-                    return {
-                        error: true,
-                        message: `请求失败 (${resp.status}): ${errText.substring(0, 100)}`
-                    };
+                    return { error: true, message: `请求失败 (${resp.status}): ${errText.substring(0, 100)}` };
                 }
 
                 const data = await resp.json();
-                return { error: false, data, hotelCode, beginDate, endDate };
+                if (!data.success) {
+                    return { error: true, message: data.error || '查询失败' };
+                }
+
+                // 兼容原有 renderInventoryResult 函数格式
+                return { error: false, data: { retVal: data.retVal }, hotelCode, beginDate, endDate };
 
             } catch(e) {
-                return {
-                    error: true,
-                    message: `网络错误: ${e.message}`
-                };
+                return { error: true, message: `网络错误: ${e.message}` };
             }
         }
 
@@ -802,7 +1076,6 @@
                 return `
                     <div class="inventory-card">
                         <div style="color:#d32f2f;font-size:13px;">⚠️ ${result.message}</div>
-                        ${result.message.includes('Token') ? '<div style="font-size:12px;color:#666;margin-top:8px;">点击右上角 ⚙️ 设置Token</div>' : ''}
                     </div>
                 `;
             }
@@ -949,8 +1222,6 @@
         }
 
 
-        const API_BASE = 'http://localhost:5123';
-
         async function callRecommendAPI(query) {
             try {
                 const response = await fetch(`${API_BASE}/api/recommend`, {
@@ -1083,6 +1354,219 @@
             // ... 原有逻辑保持不变
         }
 
+        // ============================================
+        // 直查面板（团期 / 酒店库存）
+        // ============================================
+        let currentLookupMode = 'groups';
+
+        function openLookup(mode) {
+            currentLookupMode = mode;
+            document.getElementById('panelGroups').style.display = mode === 'groups' ? '' : 'none';
+            document.getElementById('panelHotel').style.display = mode === 'hotel' ? '' : 'none';
+            document.getElementById('lookupOverlay').classList.add('show');
+            document.getElementById('lookupPanel').classList.add('show');
+        }
+
+        function closeLookup() {
+            document.getElementById('lookupOverlay').classList.remove('show');
+            document.getElementById('lookupPanel').classList.remove('show');
+        }
+
+        // ---------- 查团期 ----------
+        async function doGroupLookup() {
+            const keyword = document.getElementById('groupKeyword').value.trim();
+            const monthVal = document.getElementById('groupMonth').value; // "2026-05"
+            const resultEl = document.getElementById('groupResult');
+
+            if (!keyword) {
+                resultEl.innerHTML = '<p style="color:#d32f2f;font-size:13px;">请输入产品名称关键词</p>';
+                return;
+            }
+
+            const btn = document.querySelector('#panelGroups .lookup-submit');
+            btn.disabled = true;
+            btn.textContent = '查询中…';
+            resultEl.innerHTML = '<div style="text-align:center;padding:20px;color:#999;font-size:13px;">🔍 正在查询团期，请稍候…</div>';
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/groups-direct`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyword, month: monthVal || null, max_groups: 20 })
+                });
+                const data = await resp.json();
+
+                if (!data.success) {
+                    resultEl.innerHTML = `<p style="color:#d32f2f;font-size:13px;">⚠️ ${data.error || '查询失败'}</p>`;
+                    return;
+                }
+
+                const products = data.products || [];
+                if (products.length === 0) {
+                    resultEl.innerHTML = `<div class="no-groups-tip">未找到「${keyword}」相关产品，请换个关键词试试</div>`;
+                    return;
+                }
+
+                let html = '';
+                products.forEach(p => {
+                    const nights = p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '';
+                    const tags = (p.tags || '').split(',').filter(t => t && !['私享管家','主题团','自由行'].includes(t)).slice(0,3).join(' · ');
+
+                    html += `<div class="group-result-card">`;
+                    html += `<div class="group-result-title">${p.title || p.travel_type}</div>`;
+                    if (nights || tags) {
+                        html += `<div class="group-result-meta">${nights}${nights && tags ? ' · ' : ''}${tags}</div>`;
+                    }
+
+                    const groups = p.groups || [];
+                    if (groups.length === 0) {
+                        html += `<div style="font-size:12px;color:#aaa;padding:6px 0;">暂无可售团期</div>`;
+                    } else {
+                        groups.forEach(g => {
+                            const endText = g.end && g.end !== g.begin ? ` → ${g.end}` : '';
+                            html += `
+                                <div class="group-row">
+                                    <div>
+                                        <div class="group-date">📅 ${g.begin}${endText}</div>
+                                        <div class="group-code">${g.code}</div>
+                                    </div>
+                                    <div style="text-align:right;">
+                                        <div class="group-price">¥${(g.price||0).toLocaleString()}/人</div>
+                                        <div class="group-remain">剩 ${g.remaining}位 / 共${g.total}位</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    html += `</div>`;
+                });
+
+                if (monthVal && products.every(p => (p.groups||[]).length === 0)) {
+                    html += `<div class="no-groups-tip">💡 ${monthVal} 暂无可售团期，可去掉月份筛选查全部</div>`;
+                }
+
+                resultEl.innerHTML = html;
+
+            } catch (e) {
+                resultEl.innerHTML = `<p style="color:#d32f2f;font-size:13px;">⚠️ 网络错误：${e.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '查询团期';
+            }
+        }
+
+        // ---------- 查酒店库存 ----------
+        async function doHotelLookup() {
+            const hotelCode = document.getElementById('hotelSelect').value;
+            const checkin = document.getElementById('hotelCheckin').value;
+            const checkout = document.getElementById('hotelCheckout').value;
+            const resultEl = document.getElementById('hotelResult');
+
+            if (!hotelCode) {
+                resultEl.innerHTML = '<p style="color:#d32f2f;font-size:13px;">请选择酒店</p>';
+                return;
+            }
+            if (!checkin || !checkout) {
+                resultEl.innerHTML = '<p style="color:#d32f2f;font-size:13px;">请选择入住和离店日期</p>';
+                return;
+            }
+            if (checkout <= checkin) {
+                resultEl.innerHTML = '<p style="color:#d32f2f;font-size:13px;">离店日期须晚于入住日期</p>';
+                return;
+            }
+
+            const btn = document.querySelector('#panelHotel .lookup-submit');
+            btn.disabled = true;
+            btn.textContent = '查询中…';
+            resultEl.innerHTML = '<div style="text-align:center;padding:20px;color:#999;font-size:13px;">🔍 正在查询库存，请稍候…</div>';
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/inventory-direct`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hotel_codes: [hotelCode],
+                        begin_date: checkin,
+                        end_date: checkout
+                    })
+                });
+                const data = await resp.json();
+
+                if (!data.success) {
+                    resultEl.innerHTML = `<p style="color:#d32f2f;font-size:13px;">⚠️ ${data.error || '查询失败'}</p>`;
+                    return;
+                }
+
+                const hotelName = HOTEL_NAMES[hotelCode] || hotelCode;
+                const entries = data.retVal || [];
+
+                const checkinDate = new Date(checkin);
+                const checkoutDate = new Date(checkout);
+                const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
+
+                let html = `<div class="inventory-card">`;
+                html += `<div class="inventory-hotel">🏨 ${hotelName}</div>`;
+                html += `<div class="inventory-dates">📅 ${checkin} 入住 · ${checkout} 离店 · 共${nights}晚</div>`;
+
+                if (entries.length > 0) {
+                    const byDate = {};
+                    entries.forEach(entry => {
+                        const rmtypeDesc = entry.rmtypeDesc || '标准房';
+                        const productDesc = entry.productDesc || '';
+                        const rmtype = entry.rmtype || '';
+                        (entry.detailDtos || []).forEach(dayData => {
+                            const rsvDate = (dayData.rsvDate || checkin).split(' ')[0];
+                            if (!byDate[rsvDate]) byDate[rsvDate] = [];
+                            byDate[rsvDate].push({
+                                rmtypeDesc, productDesc, rmtype,
+                                realPrice: dayData.realPrice || 0,
+                                pmsNum: dayData.pmsNum || 0,
+                                blockNum: dayData.blockNum || 0
+                            });
+                        });
+                    });
+
+                    Object.keys(byDate).sort().forEach(date => {
+                        html += `<div style="font-size:12px;color:#C9A96E;font-weight:600;margin-top:12px;">📅 ${date}</div>`;
+                        byDate[date].forEach(room => {
+                            const avail = room.pmsNum + room.blockNum;
+                            const statusStyle = avail > 0 ? 'color:#2e7d32;' : 'color:#d32f2f;';
+                            const statusText = avail > 0 ? '✅ 有房' : '❌ 满房';
+                            html += `
+                                <div class="room-type-item">
+                                    <div class="room-type-name">
+                                        ${room.rmtypeDesc}
+                                        ${room.rmtype ? `<span style="color:#999;font-size:12px;font-weight:normal;">(${room.rmtype})</span>` : ''}
+                                    </div>
+                                    ${room.productDesc ? `<div style="font-size:11px;color:#666;">${room.productDesc}</div>` : ''}
+                                    <div style="display:flex;gap:12px;margin-top:4px;">
+                                        <span style="${statusStyle}font-size:12px;">${statusText}</span>
+                                        ${room.pmsNum > 0 ? `<span style="font-size:12px;color:#666;">公共池: ${room.pmsNum}间</span>` : ''}
+                                        ${room.blockNum > 0 ? `<span style="font-size:12px;color:#666;">预保留: ${room.blockNum}间</span>` : ''}
+                                    </div>
+                                    ${avail > 0 && room.realPrice > 0 ? `<div class="room-type-price">¥${room.realPrice.toLocaleString()}/晚</div>` : ''}
+                                </div>
+                            `;
+                        });
+                    });
+                } else {
+                    html += `<div style="font-size:13px;color:#666;margin-top:8px;">暂无符合条件的库存数据</div>`;
+                }
+
+                html += '</div>';
+                resultEl.innerHTML = html;
+
+            } catch (e) {
+                resultEl.innerHTML = `<p style="color:#d32f2f;font-size:13px;">⚠️ 网络错误：${e.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '查库存';
+            }
+        }
+
+        // ============================================
+        // 发送消息
+        // ============================================
         async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
@@ -1101,6 +1585,23 @@
 
             // 显示加载
             addLoading();
+
+            // 检测"查团期号"意图
+            const groupLookupKeywords = ['团期号', '团期', '什么时候出发', '几月出发', '出团日期'];
+            const isGroupLookup = groupLookupKeywords.some(k => text.includes(k));
+            if (isGroupLookup) {
+                removeLoading();
+                sendBtn.disabled = false;
+                // 提取产品名关键词（去掉意图词）
+                let kw = text;
+                groupLookupKeywords.forEach(k => { kw = kw.replace(k, ''); });
+                kw = kw.replace(/[的是有查一下帮我吗？?]/g, '').trim();
+                openLookup('groups');
+                if (kw) {
+                    document.getElementById('groupKeyword').value = kw;
+                }
+                return;
+            }
 
             // 解析查询意图
             const parsed = parseQueryForInventory(text);
