@@ -661,7 +661,134 @@
         };
 
         // ============================================
-        // 自然语言解析
+        // 自然语言解析 - 团期号查询
+        // ============================================
+        function parseQueryForGroups(query) {
+            const q = query.toLowerCase();
+
+            // 识别"查团期号"的意图关键词
+            const groupKeywords = [
+                '团期号', '团期', '出发日期', '几号出发', '哪天出发',
+                '有哪些日期', '有什么日期', '这个月有', '下个月有',
+                '几号', '有没有团', '有团吗', '可以发团吗'
+            ];
+            const isGroupQuery = groupKeywords.some(k => q.includes(k));
+            if (!isGroupQuery) return null;
+
+            // 提取产品名（支持简称和全称）
+            let productName = '';
+            const productPatterns = [
+                // 简称（叠字）：波波来来、达巴巴拉拉、丽丽塔塔绿绿
+                /([\u4e00-\u9fa5][\u4e00-\u9fa5])\1{1,}/g,
+                // 产品名：亚丁远山、林芝波密7天、冰川环线
+                /(?:亚丁远山|冰川环线|冰川线|拉萨环线|梅里环线|香格里拉环线|桃花节|杜鹃季|低空)/g,
+            ];
+            for (const pattern of productPatterns) {
+                const match = query.match(pattern);
+                if (match) {
+                    productName = match[0];
+                    break;
+                }
+            }
+            // 手动补充常用产品名
+            if (!productName) {
+                const knownProducts = [
+                    '亚丁远山', '亚丁', '初探亚丁', '天人之际', '回到远方的家',
+                    '梅里', '石月亮', '丙中洛', '茨中', '奔子栏',
+                    '波波来来', '波波百巴巴', '波波墨波达', '波波来波达',
+                    '来古', '巴松措', '南迦巴瓦', '达林', '拉萨',
+                    '林芝', '波密', '林芝波密', '香格里拉', '塔城', '奔子栏',
+                    '穿越三江', '三江并流', '怒江', '泸沽湖'
+                ];
+                for (const p of knownProducts) {
+                    if (q.includes(p)) {
+                        productName = p;
+                        break;
+                    }
+                }
+            }
+
+            // 提取月份
+            let month = null;
+            const monthMatch = q.match(/(\d+)月/);
+            if (monthMatch) {
+                const m = parseInt(monthMatch[1]);
+                month = `2026-${String(m).padStart(2, '0')}`;
+            } else if (q.includes('本月') || q.includes('这个月')) {
+                const now = new Date();
+                month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
+            } else if (q.includes('下个月')) {
+                const now = new Date();
+                now.setMonth(now.getMonth() + 1);
+                month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
+            }
+
+            return { productName, month };
+        }
+
+        async function queryGroupsDirect(keyword, month) {
+            const resp = await fetch(`${API_BASE}/api/groups-direct`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyword, month, max_groups: 20 })
+            });
+            return await resp.json();
+        }
+
+        function renderGroupsResult(data, keyword) {
+            if (!data.success) {
+                return `<p style="color:#d32f2f;">⚠️ 查询失败：${data.error || '未知错误'}</p>`;
+            }
+
+            const products = data.products || [];
+            if (products.length === 0) {
+                return `<p style="color:#999;">未找到「${keyword}」相关产品团期，请换个关键词试试。</p>`;
+            }
+
+            let html = '';
+            products.forEach(p => {
+                const nights = p.nights ? `${p.nights}晚${p.days || (p.nights+1)}天` : '';
+                const tags = (p.tags || '').split(',').filter(t => t && !['私享管家','主题团','自由行'].includes(t)).slice(0,3).join(' · ');
+                const title = p.title || p.travel_type || keyword;
+
+                html += `<div style="margin:12px 0;padding:14px;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">`;
+                html += `<div style="font-weight:600;color:#5a3e2b;margin-bottom:4px;">${title}</div>`;
+                if (nights || tags) {
+                    html += `<div style="font-size:12px;color:#999;margin-bottom:10px;">${nights}${nights && tags ? ' · ' : ''}${tags}</div>`;
+                }
+
+                const groups = p.groups || [];
+                if (groups.length === 0) {
+                    html += `<div style="font-size:13px;color:#aaa;">暂无可售团期</div>`;
+                } else {
+                    groups.forEach(g => {
+                        const endText = g.end && g.end !== g.begin ? ` → ${g.end}` : '';
+                        html += `
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #f0f0f0;">
+                                <div>
+                                    <div style="font-size:13px;color:#333;">📅 ${g.begin}${endText}</div>
+                                    <div style="font-size:11px;color:#C9A96E;font-family:monospace;margin-top:2px;">${g.code}</div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:14px;color:#c9a96e;font-weight:600;">¥${(g.price||0).toLocaleString()}/人</div>
+                                    <div style="font-size:11px;color:#999;margin-top:2px;">剩 ${g.remaining}位 / 共${g.total}位</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                html += `</div>`;
+            });
+
+            if (month && products.every(p => (p.groups||[]).length === 0)) {
+                html += `<p style="color:#999;font-size:13px;">💡 ${month} 暂无可售团期，可换个月份试试</p>`;
+            }
+
+            return html;
+        }
+
+        // ============================================
+        // 自然语言解析 - 库存查询
         // ============================================
         function parseQueryForInventory(query) {
             const q = query.toLowerCase();
@@ -1180,7 +1307,28 @@
             // 清空输入
             userInput.value = '';
 
-            // 解析查询意图
+            // ==========================================
+            // 意图识别：查团期号（优先于库存和推荐）
+            // ==========================================
+            const groupQuery = parseQueryForGroups(text);
+            if (groupQuery) {
+                removeLoading();
+                addMessage(`<p>好的，马上帮您查询团期～</p>`);
+
+                const loadingMsg = addMessage(`<div class="loading"><span></span><span></span><span></span></div>`);
+                const data = await queryGroupsDirect(groupQuery.productName || groupQuery.keyword || text, groupQuery.month);
+                removeLoading();
+                loadingMsg.remove();
+
+                // 替换刚才的"马上查"消息
+                addMessage(renderGroupsResult(data, groupQuery.productName || text));
+                sendBtn.disabled = false;
+                return;
+            }
+
+            // ==========================================
+            // 意图识别：查库存
+            // ==========================================
             const parsed = parseQueryForInventory(text);
 
             if (parsed && parsed.type === 'need_hotel') {
@@ -1218,7 +1366,9 @@
                 return;
             }
 
-            // 调用 AI 推荐（SSE流式，自带 loading 气泡）
+            // ==========================================
+            // 默认：AI 推荐
+            // ==========================================
             await doRecommend(text);
             sendBtn.disabled = false;
         }
