@@ -1,0 +1,13 @@
+/Users/gakki/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+
+╔══════════════════════════════════════════════╗
+║   小多吉推荐API服务                           ║
+║   端口: 5123                                  ║
+║   向量库: 已启用 ✓    ║
+╚══════════════════════════════════════════════╝
+    
+ * Serving Flask app 'recommend_api'
+ * Debug mode: on
+Address already in use
+Port 5123 is in use by another program. Either identify and stop that program, or start the server with a different port.

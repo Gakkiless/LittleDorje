@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>波波百巴巴 | 计价方案</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f7f5f0;
+    color: #2d2620;
+    padding: 32px 24px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+
+  /* 顶部标题 */
+  .header {
+    background: linear-gradient(135deg, #4a3728 0%, #7a5c44 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  .header h1 { font-size: 22px; font-weight: 700; letter-spacing: 1px; margin-bottom: 6px; }
+  .header .sub { font-size: 13px; opacity: 0.8; }
+  .header .route {
+    margin-top: 14px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .stop {
+    background: rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-weight: 600;
+  }
+  .arrow { opacity: 0.6; font-size: 12px; }
+
+  /* 卡片 */
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .card h2 {
+    font-size: 15px; font-weight: 700;
+    color: #4a3728;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0ebe4;
+  }
+  .card h2 .emoji { margin-right: 6px; }
+
+  /* 成本明细 */
+  .cost-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .cost-item {
+    background: #faf8f5;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .cost-item .label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .cost-item .value { font-size: 15px; font-weight: 700; color: #4a3728; }
+  .cost-item .sub-note { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  /* 假设/变量说明 */
+  .var-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .var-table th {
+    background: #f5f0ea;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #5a4030;
+  }
+  .var-table td { padding: 8px 12px; border-bottom: 1px solid #f0ebe4; }
+  .var-table tr:last-child td { border-bottom: none; }
+  .var-table .highlight { background: #fff8f0; }
+  .var-name { font-family: monospace; font-size: 12px; color: #a05030; background: #fdf4ed; padding: 2px 6px; border-radius: 4px; }
+
+  /* 价格汇总表 */
+  .price-section { margin-bottom: 20px; }
+  .price-section h3 { font-size: 14px; font-weight: 700; color: #5a4030; margin-bottom: 10px; }
+
+  .price-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .price-table thead tr { background: #4a3728; color: #fff; }
+  .price-table thead th { padding: 10px 12px; text-align: center; font-weight: 600; }
+  .price-table thead th:first-child { text-align: left; }
+  .price-table tbody tr:nth-child(even) { background: #faf8f5; }
+  .price-table tbody td { padding: 10px 12px; border-bottom: 1px solid #f0ebe4; text-align: center; }
+  .price-table tbody td:first-child { text-align: left; font-weight: 600; }
+
+  .adult-price { color: #4a3728; font-weight: 700; font-size: 15px; }
+  .child-price { color: #c07030; font-weight: 700; font-size: 15px; }
+  .season-tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 4px;
+  }
+  .tag-jieri { background: #fdecea; color: #c0392b; }
+  .tag-wangji { background: #fdf6e3; color: #b7770d; }
+  .tag-pingji { background: #eaf4fb; color: #1a6fa0; }
+  .tag-danji { background: #eafaf1; color: #1a8060; }
+
+  /* 季节对照 */
+  .season-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .season-table th { background: #f5f0ea; padding: 9px 10px; text-align: center; font-weight: 600; color: #5a4030; }
+  .season-table th:first-child { text-align: left; }
+  .season-table td { padding: 9px 10px; border-bottom: 1px solid #f0ebe4; text-align: center; }
+  .season-table td:first-child { text-align: left; font-weight: 600; }
+  .season-table tr:nth-child(even) td { background: #faf8f5; }
+  .a-val { color: #4a3728; font-weight: 700; }
+  .c-val { color: #c07030; font-weight: 600; }
+
+  /* 注意事项 */
+  .notice-list { list-style: none; padding: 0; }
+  .notice-list li {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f0ea;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .notice-list li:last-child { border-bottom: none; }
+  .notice-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .warn { color: #e67e22; }
+  .info { color: #3498db; }
+  .ok { color: #27ae60; }
+
+  /* 公式 */
+  .formula-box {
+    background: #fdf6ed;
+    border: 1.5px solid #e8d8c0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 13px;
+    font-family: monospace;
+    color: #5a3a1a;
+    margin-bottom: 12px;
+  }
+
+  /* 底部 */
+  .footer {
+    text-align: center;
+    color: #bbb;
+    font-size: 12px;
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+  }
+
+  @media (max-width: 600px) {
+    .cost-grid { grid-template-columns: repeat(2, 1fr); }
+    body { padding: 16px 12px; }
+    .header { padding: 20px 18px; }
+    .card { padding: 18px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 标题 -->
+  <div class="header">
+    <h1>波波百巴巴 · 计价方案</h1>
+    <div class="sub">自由行 · 4晚5天 · 5家庭独立报价</div>
+    <div class="route">
+      <span class="stop">波密</span>
+      <span class="arrow">→</span>
+      <span class="stop">百巴</span>
+      <span class="arrow">→</span>
+      <span class="stop">巴松措</span>
+      <span class="arrow">→</span>
+      <span class="stop">巴松措</span>
+      <span class="arrow">→</span>
+      <span class="stop">拉萨（送机）</span>
+    </div>
+  </div>
+
+  <!-- 元素成本 -->
+  <div class="card">
+    <h2><span class="emoji">📋</span>元素成本明细</h2>
+    <p style="font-size:12px;color:#999;margin-bottom:14px;">以下成本来自松赞实际码表（xlsx提取），部分使用参考值估算</p>
+
+    <div style="margin-bottom: 18px;">
+      <div class="price-section">
+        <h3>酒店住宿（每间房 · 每晚）</h3>
+      </div>
+      <div class="cost-grid">
+        <div class="cost-item">
+          <div class="label">波密（1晚）</div>
+          <div class="value">653.27 元/晚</div>
+          <div class="sub-note">湖景豪华大床/双床房</div>
+        </div>
+        <div class="cost-item">
+          <div class="label">百巴（1晚）</div>
+          <div class="value">831.88 元/晚</div>
+          <div class="sub-note">双床房（唯一标准房型）</div>
+        </div>
+        <div class="cost-item">
+          <div class="label">巴松措（2晚）</div>
+          <div class="value">674.25 元/晚</div>
+          <div class="sub-note">高级大/双床房</div>
+        </div>
+      </div>
+      <div style="background:#f5f0ea;border-radius:8px;padding:10px 14px;font-size:13px;color:#5a4030;margin-top:8px;">
+        <strong>每间房住宿总成本（4晚）</strong> = 653.27 × 1 + 831.88 × 1 + 674.25 × 2 = <strong>2,833.65 元</strong>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 18px;">
+      <div class="price-section">
+        <h3>车辆 & 司机（路虎卫士 · 1辆/家庭）</h3>
+      </div>
+      <div class="cost-grid">
+        <div class="cost-item">
+          <div class="label">车辆成本</div>
+          <div class="value">2,800 元</div>
+          <div class="sub-note">西藏200km×4元×3.5天</div>
+        </div>
+        <div class="cost-item">
+          <div class="label">司机费用</div>
+          <div class="value">1,225 元</div>
+          <div class="sub-note">350元/天 × 3.5天</div>
+        </div>
+        <div class="cost-item" style="background:#fdf6ed;">
+          <div class="label">车司合计</div>
+          <div class="value" style="color:#c07030;">4,025 元/辆</div>
+          <div class="sub-note">自由行-0.5天=3.5天</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="price-section">
+        <h3>人均元素成本</h3>
+      </div>
+      <table class="var-table">
+        <tr>
+          <th>元素</th>
+          <th>单价（成人）</th>
+          <th>来源</th>
+          <th>说明</th>
+        </tr>
+        <tr>
+          <td>活动</td>
+          <td><span class="var-name">A = 55元/人</span></td>
+          <td>码表参考值</td>
+          <td>自由行仅推荐，含基础体验项目</td>
+        </tr>
+        <tr class="highlight">
+          <td>餐饮</td>
+          <td><span class="var-name">F = 300元/人</span></td>
+          <td>同路线产品总览</td>
+          <td>4晚自由行早餐估算（不含午晚餐）</td>
+        </tr>
+        <tr>
+          <td>保险</td>
+          <td><span class="var-name">I = 50元/人</span></td>
+          <td>码表固定值</td>
+          <td>基础出行险</td>
+        </tr>
+        <tr class="highlight">
+          <td>零食</td>
+          <td><span class="var-name">S = 80元/人</span></td>
+          <td>码表固定值</td>
+          <td>旅途零食服务包</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 儿童折扣规则 -->
+  <div class="card">
+    <h2><span class="emoji">👦</span>儿童折扣规则（自由行 · 依据核价文档）</h2>
+    <table class="var-table">
+      <tr>
+        <th>费用类型</th>
+        <th>6岁以下</th>
+        <th>6—11岁</th>
+        <th>12岁及以上</th>
+      </tr>
+      <tr>
+        <td>酒店（加床）</td>
+        <td>不额外计费</td>
+        <td>不额外计费</td>
+        <td>不额外计费</td>
+      </tr>
+      <tr class="highlight">
+        <td>酒店（占床）</td>
+        <td colspan="3">与成人共用一间房，不额外收取房费；若儿童独占1间房，则按成人价计</td>
+      </tr>
+      <tr>
+        <td>餐饮</td>
+        <td>× <strong>30%</strong>（3折）</td>
+        <td>× <strong>70%</strong>（7折）</td>
+        <td>× <strong>100%</strong>（同成人）</td>
+      </tr>
+      <tr class="highlight">
+        <td>活动</td>
+        <td colspan="3">同成人价</td>
+      </tr>
+      <tr>
+        <td>车司管</td>
+        <td colspan="3"><strong>儿童不分摊车司管费用</strong>（由同行成人承担）</td>
+      </tr>
+      <tr class="highlight">
+        <td>保险 / 零食</td>
+        <td colspan="3">同成人价</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 核价公式 -->
+  <div class="card">
+    <h2><span class="emoji">🔢</span>核价公式</h2>
+    <div class="formula-box">
+打包价 = 元素总成本 ÷ 成本率
+
+成本率 = 1 − 利润率
+  节日：成本率 = 0.80（利润20%）
+  旺季：成本率 = 0.825（利润17.5%）
+  平季：成本率 = 0.85（利润15%）
+  淡季：成本率 = 0.90（利润10%）
+    </div>
+    <p style="font-size:12px;color:#999;">注：成本率来源于"在湖边在山谷"同路线产品总览，自由行产品通用</p>
+  </div>
+
+  <!-- 汇总价格表 -->
+  <div class="card">
+    <h2><span class="emoji">💰</span>4种场景价格汇总（旺季）</h2>
+    <p style="font-size:12px;color:#999;margin-bottom:14px;">每家庭独立用车（1辆路虎卫士）+ 1间房，以旺季为基准</p>
+
+    <table class="price-table">
+      <thead>
+        <tr>
+          <th>场景</th>
+          <th>成人价<br><small style="font-weight:400;opacity:0.8">每人</small></th>
+          <th>儿童价<br><small style="font-weight:400;opacity:0.8">每人</small></th>
+          <th>房间内总价<br><small style="font-weight:400;opacity:0.8">（不含儿童加床）</small></th>
+          <th>备注</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2大1小（11岁 · 加床）</td>
+          <td><span class="adult-price">¥4,745</span></td>
+          <td><span class="child-price">¥479</span></td>
+          <td>¥9,969</td>
+          <td style="font-size:12px;color:#e67e22;">⚠ 百巴不可加床</td>
+        </tr>
+        <tr>
+          <td>2大1小（12岁 · 加床）</td>
+          <td><span class="adult-price">¥4,745</span></td>
+          <td><span class="child-price">¥588</span></td>
+          <td>¥10,078</td>
+          <td style="font-size:12px;color:#e67e22;">⚠ 百巴不可加床</td>
+        </tr>
+        <tr>
+          <td>1大1小（11岁 · 占床）</td>
+          <td><span class="adult-price">¥8,901</span></td>
+          <td><span class="child-price">¥479</span></td>
+          <td>¥9,380</td>
+          <td style="font-size:12px;color:#888;">成人承担全部车司</td>
+        </tr>
+        <tr>
+          <td>1大1小（12岁 · 占床）</td>
+          <td><span class="adult-price">¥8,901</span></td>
+          <td><span class="child-price">¥588</span></td>
+          <td>¥9,489</td>
+          <td style="font-size:12px;color:#888;">成人承担全部车司</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 多季节对照表 -->
+  <div class="card">
+    <h2><span class="emoji">📅</span>全季节价格对照表（成人/儿童）</h2>
+    <table class="season-table">
+      <thead>
+        <tr>
+          <th>场景</th>
+          <th><span class="season-tag tag-jieri">节日</span><br>成人 / 儿童</th>
+          <th><span class="season-tag tag-wangji">旺季</span><br>成人 / 儿童</th>
+          <th><span class="season-tag tag-pingji">平季</span><br>成人 / 儿童</th>
+          <th><span class="season-tag tag-danji">淡季</span><br>成人 / 儿童</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2大1小（11岁·加床）</td>
+          <td><span class="a-val">4,893</span> / <span class="c-val">494</span></td>
+          <td><span class="a-val">4,745</span> / <span class="c-val">479</span></td>
+          <td><span class="a-val">4,605</span> / <span class="c-val">465</span></td>
+          <td><span class="a-val">4,349</span> / <span class="c-val">439</span></td>
+        </tr>
+        <tr>
+          <td>2大1小（12岁·加床）</td>
+          <td><span class="a-val">4,893</span> / <span class="c-val">606</span></td>
+          <td><span class="a-val">4,745</span> / <span class="c-val">588</span></td>
+          <td><span class="a-val">4,605</span> / <span class="c-val">571</span></td>
+          <td><span class="a-val">4,349</span> / <span class="c-val">539</span></td>
+        </tr>
+        <tr>
+          <td>1大1小（11岁·占床）</td>
+          <td><span class="a-val">9,180</span> / <span class="c-val">494</span></td>
+          <td><span class="a-val">8,901</span> / <span class="c-val">479</span></td>
+          <td><span class="a-val">8,640</span> / <span class="c-val">465</span></td>
+          <td><span class="a-val">8,160</span> / <span class="c-val">439</span></td>
+        </tr>
+        <tr>
+          <td>1大1小（12岁·占床）</td>
+          <td><span class="a-val">9,180</span> / <span class="c-val">606</span></td>
+          <td><span class="a-val">8,901</span> / <span class="c-val">588</span></td>
+          <td><span class="a-val">8,640</span> / <span class="c-val">571</span></td>
+          <td><span class="a-val">8,160</span> / <span class="c-val">539</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:#999;margin-top:10px;">黑色=成人价（元/人），橙色=儿童价（元/人）</p>
+  </div>
+
+  <!-- 成本拆解透视 -->
+  <div class="card">
+    <h2><span class="emoji">🔍</span>成本拆解透视（旺季 · 每个计价单元）</h2>
+    <table class="var-table">
+      <tr>
+        <th>元素</th>
+        <th>2大1小（加床）<br>每成人</th>
+        <th>1大1小（占床）<br>成人</th>
+        <th>说明</th>
+      </tr>
+      <tr>
+        <td>酒店（4晚）</td>
+        <td>1,416.83</td>
+        <td>2,833.65</td>
+        <td>2大1小各分一半；1大1小全部承担</td>
+      </tr>
+      <tr class="highlight">
+        <td>车辆（路虎卫士）</td>
+        <td>1,400.00</td>
+        <td>2,800.00</td>
+        <td>车费由成人平摊</td>
+      </tr>
+      <tr>
+        <td>司机</td>
+        <td>612.50</td>
+        <td>1,225.00</td>
+        <td>司机费由成人平摊</td>
+      </tr>
+      <tr class="highlight">
+        <td>活动</td>
+        <td>55.00</td>
+        <td>55.00</td>
+        <td>人均，儿童同价</td>
+      </tr>
+      <tr>
+        <td>餐饮</td>
+        <td>300.00</td>
+        <td>300.00</td>
+        <td>含4晚早餐；儿童按年龄打折</td>
+      </tr>
+      <tr class="highlight">
+        <td>保险</td>
+        <td>50.00</td>
+        <td>50.00</td>
+        <td>人均</td>
+      </tr>
+      <tr>
+        <td>零食</td>
+        <td>80.00</td>
+        <td>80.00</td>
+        <td>人均</td>
+      </tr>
+      <tr style="background:#f5f0ea;font-weight:700;">
+        <td>成人元素成本合计</td>
+        <td>3,914.33</td>
+        <td>7,343.65</td>
+        <td></td>
+      </tr>
+      <tr style="background:#f5f0ea;font-weight:700;">
+        <td>÷ 成本率（旺季0.825）</td>
+        <td style="color:#4a3728;">= <strong>4,745元</strong></td>
+        <td style="color:#4a3728;">= <strong>8,901元</strong></td>
+        <td>打包价</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 注意事项 -->
+  <div class="card">
+    <h2><span class="emoji">⚠️</span>注意事项 & 假设前提</h2>
+    <ul class="notice-list">
+      <li>
+        <span class="notice-icon warn">⚠</span>
+        <span><strong>百巴帐篷营地不支持加床</strong>：场景1（2大1小11岁加床）和场景2（2大1小12岁加床）中，百巴那1晚无法给儿童加床，需提前与产品运营确认具体处理方式（如儿童与父母共用床位，或协商特殊安排）</span>
+      </li>
+      <li>
+        <span class="notice-icon info">ℹ</span>
+        <span><strong>房型确认</strong>：巴松措林卡"高级大/双床房"是用户要求"豪华大床或双床房"的最接近标准档；如需"豪华双床房"（848.93元/晚），成人价将相应上调约130-160元</span>
+      </li>
+      <li>
+        <span class="notice-icon info">ℹ</span>
+        <span><strong>餐饮成本估算</strong>：300元/人/4晚基于同路线参考产品（"在湖边在山谷"总览数据），实际值以具体行程配置为准</span>
+      </li>
+      <li>
+        <span class="notice-icon info">ℹ</span>
+        <span><strong>活动计价</strong>：自由行产品活动仅推荐不含，55元为系统参考默认值。若实际行程不含活动，成人价可下调约67元（55÷0.825）</span>
+      </li>
+      <li>
+        <span class="notice-icon info">ℹ</span>
+        <span><strong>12岁儿童餐饮</strong>：依据核价文档（docx）规则，12岁+餐饮按成人价计算。如按2025价格政策PPT（私享12-17岁8折），餐饮打8折，儿童价将相应降低约46元</span>
+      </li>
+      <li>
+        <span class="notice-icon ok">✓</span>
+        <span><strong>车司管规则</strong>：自由行无管家。车司费用由同行成人全部承担，儿童不分摊（依据核价文档第四节规定）</span>
+      </li>
+      <li>
+        <span class="notice-icon ok">✓</span>
+        <span><strong>用车天数</strong>：4晚5天行程，自由行默认 −0.5天计价 = 3.5天（依据2025价格政策PPT）</span>
+      </li>
+      <li>
+        <span class="notice-icon ok">✓</span>
+        <span><strong>本产品定性</strong>："波波百巴巴"非基本盘标品，但可能属于标品变形（未超过20%）。如需定制服务费，在元素成本基础上加2%，成本率相应调整</span>
+      </li>
+      <li>
+        <span class="notice-icon info">ℹ</span>
+        <span><strong>预售折扣</strong>：如提前1个月购买，可按拉萨线98折；提前2个月，95折。以上价格为原价，折扣后价格需另算</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    松赞产品计价方案 · 波波百巴巴行程 · 2026年3月 · 仅供内部参考
+  </div>
+
+</div>
+</body>
+</html>

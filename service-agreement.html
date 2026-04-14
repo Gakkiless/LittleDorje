@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>服务协议弹窗</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* 手机容器 */
+        .phone-container {
+            width: 375px;
+            height: 667px;
+            background: #fff;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            height: 44px;
+            background: #fff;
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 8px;
+            justify-content: center;
+            font-size: 14px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* 标题 */
+        .header {
+            padding: 16px 20px 12px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Tab 导航 */
+        .tab-nav {
+            display: flex;
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab-item.active {
+            color: #07c160;
+            font-weight: 500;
+        }
+
+        .tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 3px;
+            background: #07c160;
+            border-radius: 2px;
+        }
+
+        .tab-item.read {
+            color: #07c160;
+        }
+
+        .tab-item .read-badge {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: #07c160;
+            color: #fff;
+            font-size: 10px;
+            border-radius: 50%;
+            line-height: 16px;
+            margin-left: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tab-item.read .read-badge {
+            opacity: 1;
+        }
+
+        /* 协议内容区域 */
+        .content-wrapper {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .protocol-content {
+            height: 100%;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 40px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .protocol-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .protocol-content::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 2px;
+        }
+
+        .protocol-section {
+            margin-bottom: 20px;
+        }
+
+        .protocol-section h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .protocol-section p {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.8;
+            text-align: justify;
+            margin-bottom: 12px;
+        }
+
+        .protocol-section ul {
+            padding-left: 20px;
+            margin-bottom: 12px;
+        }
+
+        .protocol-section li {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 6px;
+        }
+
+        /* 底部进度提示 */
+        .progress-hint {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-hint .highlight {
+            color: #07c160;
+            font-weight: 500;
+        }
+
+        .progress-hint .count {
+            background: #07c160;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+
+        /* 底部按钮 */
+        .footer {
+            padding: 12px 20px 24px;
+            display: flex;
+            gap: 12px;
+            background: #fff;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            flex: 1;
+            height: 44px;
+            border-radius: 22px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            outline: none;
+        }
+
+        .btn-disagree {
+            background: #fff;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+
+        .btn-disagree:active {
+            background: #f5f5f5;
+        }
+
+        .btn-agree {
+            background: #07c160;
+            color: #fff;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-agree.active {
+            opacity: 1;
+            cursor: pointer;
+        }
+
+        .btn-agree.active:active {
+            background: #06ad56;
+            transform: scale(0.98);
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* 勾选动画 */
+        @keyframes checkmark {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .success-overlay.show {
+            display: flex;
+        }
+
+        .success-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            background: #07c160;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 16px;
+            animation: checkmark 0.5s ease;
+        }
+
+        .success-icon svg {
+            width: 30px;
+            height: 30px;
+            stroke: #fff;
+            stroke-width: 3;
+            fill: none;
+        }
+
+        .success-text {
+            font-size: 18px;
+            color: #333;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <!-- 状态栏 -->
+        <div class="status-bar">9:41</div>
+
+        <!-- 标题 -->
+        <div class="header">
+            <h1>服务协议</h1>
+        </div>
+
+        <!-- Tab 导航 -->
+        <div class="tab-nav">
+            <div class="tab-item active" data-tab="0" onclick="switchTab(0)">
+                用户协议
+                <span class="read-badge">✓</span>
+            </div>
+            <div class="tab-item" data-tab="1" onclick="switchTab(1)">
+                隐私政策
+                <span class="read-badge">✓</span>
+            </div>
+            <div class="tab-item" data-tab="2" onclick="switchTab(2)">
+                会员政策
+                <span class="read-badge">✓</span>
+            </div>
+        </div>
+
+        <!-- 协议内容 -->
+        <div class="content-wrapper">
+            <div class="protocol-content" id="protocolContent" onscroll="handleScroll()">
+                <!-- 用户协议 -->
+                <div class="tab-panel active" id="tab0">
+                    <div class="protocol-section">
+                        <h3>一、总则</h3>
+                        <p>欢迎使用松赞旅行平台服务！本用户协议（以下称"本协议"）是您与松赞旅行之间关于使用松赞旅行平台服务的法律协议。请您在注册或使用本服务前仔细阅读本协议。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>二、服务内容</h3>
+                        <p>松赞旅行平台通过互联网为您提供以下服务：</p>
+                        <ul>
+                            <li>酒店预订服务</li>
+                            <li>旅行套餐定制</li>
+                            <li>会员专属权益</li>
+                            <li>目的地导览</li>
+                            <li>在线客服支持</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>三、用户注册</h3>
+                        <p>您在使用本服务前需要注册成为松赞旅行平台会员。注册时您应提供真实、准确、完整的个人资料，并及时更新。如您提供的信息不真实或不准确，我们有权暂停或终止您的账号。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>四、账户安全</h3>
+                        <p>您应妥善保管您的账户和密码，对您账户下发生的所有活动负责。如发现任何未经授权使用您账户的情况，请立即通知我们。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>五、服务费用</h3>
+                        <p>松赞旅行平台的部分服务可能会收取费用。具体费用标准将在相关服务页面予以展示。您使用付费服务即表示您同意支付相关费用。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>六、用户行为规范</h3>
+                        <p>您在使用本服务时不得从事以下行为：</p>
+                        <ul>
+                            <li>违反法律法规的行为</li>
+                            <li>侵犯他人合法权益的行为</li>
+                            <li>破坏平台正常运行的行为</li>
+                            <li>传播虚假信息或恶意内容</li>
+                            <li>其他违反公序良俗的行为</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>七、知识产权</h3>
+                        <p>松赞旅行平台的所有内容，包括但不限于文字、图片、图表、视频、软件等，均为松赞旅行或其内容提供者的财产，受知识产权法保护。未经授权，您不得复制、修改、传播或使用这些内容。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>八、免责声明</h3>
+                        <p>在法律允许的范围内，松赞旅行不对以下情况承担责任：</p>
+                        <ul>
+                            <li>因不可抗力导致的服务中断</li>
+                            <li>因第三方原因导致的损失</li>
+                            <li>用户因使用本服务而产生的任何损失</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>九、协议修改</h3>
+                        <p>我们有权随时修改本协议。修改后的协议将在平台上公布，继续使用本服务即表示您接受修改后的协议。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>十、争议解决</h3>
+                        <p>本协议的订立、执行和解释均适用中华人民共和国法律。因本协议产生的争议，双方应友好协商解决；协商不成的，任何一方均有权向松赞旅行所在地人民法院提起诉讼。</p>
+                    </div>
+                </div>
+
+                <!-- 隐私政策 -->
+                <div class="tab-panel" id="tab1">
+                    <div class="protocol-section">
+                        <h3>一、我们如何收集信息</h3>
+                        <p>为了向您提供更好的服务，我们可能会收集以下类型的信息：</p>
+                        <ul>
+                            <li><strong>基本信息：</strong>包括您的姓名、手机号码、电子邮件地址、身份证号等</li>
+                            <li><strong>账户信息：</strong>包括您的用户名、头像、会员等级等</li>
+                            <li><strong>交易信息：</strong>包括您的订单记录、支付记录、预订历史等</li>
+                            <li><strong>设备信息：</strong>包括您的设备型号、操作系统、浏览器类型等</li>
+                            <li><strong>位置信息：</strong>包括您的地理位置、行程轨迹等</li>
+                            <li><strong>使用信息：</strong>包括您的访问记录、浏览偏好、搜索记录等</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>二、我们如何使用信息</h3>
+                        <p>我们收集的信息将用于以下目的：</p>
+                        <ul>
+                            <li>为您提供旅行预订服务</li>
+                            <li>处理您的订单和支付</li>
+                            <li>改进我们的产品和服务</li>
+                            <li>向您发送重要的通知</li>
+                            <li>为您提供个性化的推荐</li>
+                            <li>进行数据分析和市场研究</li>
+                            <li>保护您的账户安全</li>
+                            <li>遵守法律法规的要求</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>三、我们如何共享信息</h3>
+                        <p>在以下情况下，我们可能会共享您的信息：</p>
+                        <ul>
+                            <li><strong>服务提供商：</strong>与帮助我们提供服务的合作伙伴共享</li>
+                            <li><strong>酒店供应商：</strong>为完成您的预订而共享给相关酒店</li>
+                            <li><strong>支付机构：</strong>为处理支付而共享给支付服务商</li>
+                            <li><strong>法律要求：</strong>根据法律法规或政府要求</li>
+                            <li><strong>业务转让：</strong>在企业合并、收购等情况下转让</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>四、信息保护措施</h3>
+                        <p>我们采用多种安全措施保护您的个人信息：</p>
+                        <ul>
+                            <li>使用加密技术保护数据传输</li>
+                            <li>限制员工访问个人信息</li>
+                            <li>定期审查数据处理流程</li>
+                            <li>使用安全防护软件</li>
+                            <li>建立应急响应机制</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>五、您的权利</h3>
+                        <p>根据适用法律，您享有以下权利：</p>
+                        <ul>
+                            <li><strong>访问权：</strong>您有权访问您的个人信息</li>
+                            <li><strong>更正权：</strong>您有权更正不准确的个人信息</li>
+                            <li><strong>删除权：</strong>在特定情况下您有权要求删除您的信息</li>
+                            <li><strong>限制处理权：</strong>在特定情况下您有权限制我们对信息的处理</li>
+                            <li><strong>数据可携权：</strong>您有权以结构化方式获取您的信息</li>
+                            <li><strong>反对权：</strong>您有权反对我们对信息的某些处理方式</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>六、未成年人保护</h3>
+                        <p>我们非常重视对未成年人个人信息的保护。我们不会故意收集未满18周岁未成年人的个人信息。如果您是未成年人，请在使用我们的服务前取得您监护人的同意。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>七、Cookie 和类似技术</h3>
+                        <p>我们使用Cookie和类似技术来：</p>
+                        <ul>
+                            <li>记住您的偏好设置</li>
+                            <li>分析网站流量和使用模式</li>
+                            <li>提供个性化的内容和广告</li>
+                            <li>改善用户体验</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>八、信息存储期限</h3>
+                        <p>我们会在必要的时间内保留您的个人信息，以实现本政策所述的目的，或根据法律要求进行更长时间的保留。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>九、跨境传输</h3>
+                        <p>您的信息可能会被传输到您所在地区以外的国家/地区，这些国家/地区可能有不同的数据保护法律。我们会采取措施确保您的信息得到充分保护。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>十、政策更新</h3>
+                        <p>我们可能会不时更新本隐私政策。重大变更我们会通过平台公告或向您发送通知的方式告知您。</p>
+                    </div>
+                </div>
+
+                <!-- 会员政策 -->
+                <div class="tab-panel" id="tab2">
+                    <div class="protocol-section">
+                        <h3>一、会员等级</h3>
+                        <p>松赞旅行会员分为以下等级：</p>
+                        <ul>
+                            <li><strong>普通会员：</strong>注册即成为普通会员</li>
+                            <li><strong>银卡会员：</strong>累计消费满5,000元</li>
+                            <li><strong>金卡会员：</strong>累计消费满20,000元</li>
+                            <li><strong>黑金会员：</strong>累计消费满50,000元</li>
+                            <li><strong>钻石会员：</strong>累计消费满100,000元</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>二、积分规则</h3>
+                        <p>会员消费可获得积分：</p>
+                        <ul>
+                            <li>普通会员：消费1元积1分</li>
+                            <li>银卡会员：消费1元积1.2分</li>
+                            <li>金卡会员：消费1元积1.5分</li>
+                            <li>黑金会员：消费1元积2分</li>
+                            <li>钻石会员：消费1元积3分</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>三、积分用途</h3>
+                        <p>积分可用于：</p>
+                        <ul>
+                            <li>兑换松赞旗下酒店免费住宿</li>
+                            <li>兑换旅行套餐</li>
+                            <li>抵扣部分消费金额</li>
+                            <li>兑换周边商品</li>
+                            <li>参与积分抽奖活动</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>四、会员权益</h3>
+                        <p>各级会员享有以下权益：</p>
+                        <ul>
+                            <li><strong>普通会员：</strong>基础折扣、生日礼遇</li>
+                            <li><strong>银卡会员：</strong>9.5折、优先预订、免费升房</li>
+                            <li><strong>金卡会员：</strong>9折、免费早餐、机场接送</li>
+                            <li><strong>黑金会员：</strong>8.5折、专属管家、定制行程</li>
+                            <li><strong>钻石会员：</strong>8折、私人飞机、全方位定制服务</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>五、等级保级</h3>
+                        <p>会员等级有效期为一年，到期后根据累计消费金额重新评定等级。若在有效期内消费金额未达到当前等级要求，将降级至相应等级。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>六、会员日活动</h3>
+                        <p>每月8日为松赞会员日，会员可享受：</p>
+                        <ul>
+                            <li>限定折扣优惠</li>
+                            <li>积分翻倍奖励</li>
+                            <li>专属礼品兑换</li>
+                            <li>限量产品抢购</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>七、专属服务</h3>
+                        <p>高等级会员可享受：</p>
+                        <ul>
+                            <li>24小时专属管家服务</li>
+                            <li>行程定制与规划</li>
+                            <li>VIP接待通道</li>
+                            <li>私人飞机/直升机服务</li>
+                            <li>米其林餐厅预订</li>
+                            <li>稀缺资源优先权</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>八、积分转让</h3>
+                        <p>会员积分不可转让给其他账户。积分兑换的礼品或服务仅限会员本人使用。</p>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>九、违规处理</h3>
+                        <p>如有以下行为，我们将取消会员资格并清除所有积分：</p>
+                        <ul>
+                            <li>恶意刷单、虚假交易</li>
+                            <li>滥用会员权益</li>
+                            <li>违反平台规则</li>
+                            <li>损害松赞品牌形象</li>
+                        </ul>
+                    </div>
+                    <div class="protocol-section">
+                        <h3>十、最终解释权</h3>
+                        <p>松赞旅行对会员政策拥有最终解释权。如有疑问，请联系客服热线或在线客服。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部进度提示 -->
+        <div class="progress-hint" id="progressHint">
+            请先完整阅读所有协议内容
+        </div>
+
+        <!-- 底部按钮 -->
+        <div class="footer">
+            <button class="btn btn-disagree" onclick="handleDisagree()">不同意</button>
+            <button class="btn btn-agree" id="agreeBtn" onclick="handleAgree()">已阅读并同意</button>
+        </div>
+    </div>
+
+    <!-- 成功弹窗 -->
+    <div class="success-overlay" id="successOverlay" onclick="closeSuccess()">
+        <div class="success-box" onclick="event.stopPropagation()">
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <div class="success-text">已阅读并同意</div>
+        </div>
+    </div>
+
+    <script>
+        const protocolNames = ['用户协议', '隐私政策', '会员政策'];
+        const tabNames = ['用户协议', '隐私政策', '会员政策'];
+        const tabPanels = document.querySelectorAll('.tab-panel');
+        const tabItems = document.querySelectorAll('.tab-item');
+        const progressHint = document.getElementById('progressHint');
+        const agreeBtn = document.getElementById('agreeBtn');
+        const contentEl = document.getElementById('protocolContent');
+
+        // 记录每个 tab 的阅读状态和滚动进度
+        const tabStates = [
+            { read: false, scrollTop: 0 },
+            { read: false, scrollTop: 0 },
+            { read: false, scrollTop: 0 }
+        ];
+
+        let currentTab = 0;
+
+        // 切换 Tab
+        function switchTab(index) {
+            currentTab = index;
+            
+            // 更新 Tab 样式
+            tabItems.forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+            });
+
+            // 更新内容显示
+            tabPanels.forEach((panel, i) => {
+                panel.classList.toggle('active', i === index);
+            });
+
+            // 恢复该 tab 的滚动位置
+            contentEl.scrollTop = tabStates[index].scrollTop;
+            
+            updateProgress();
+        }
+
+        // 处理滚动
+        function handleScroll() {
+            const scrollTop = contentEl.scrollTop;
+            const scrollHeight = contentEl.scrollHeight;
+            const clientHeight = contentEl.clientHeight;
+
+            // 记录滚动位置
+            tabStates[currentTab].scrollTop = scrollTop;
+
+            // 计算滚动比例
+            const progress = (scrollTop + clientHeight) / scrollHeight;
+
+            // 如果滚动到底部（超过90%），标记为已读
+            if (progress >= 0.9 && !tabStates[currentTab].read) {
+                tabStates[currentTab].read = true;
+                tabItems[currentTab].classList.add('read');
+                showReadNotice();
+            }
+
+            updateProgress();
+        }
+
+        // 显示已阅读提示
+        function showReadNotice() {
+            const name = protocolNames[currentTab];
+            progressHint.innerHTML = `<span class="highlight">已阅读完${name}</span>`;
+            
+            // 2秒后恢复进度显示
+            setTimeout(() => {
+                updateProgress();
+            }, 2000);
+        }
+
+        // 更新进度显示
+        function updateProgress() {
+            const readCount = tabStates.filter(t => t.read).length;
+            const allRead = readCount === 3;
+
+            if (allRead) {
+                progressHint.innerHTML = `已阅读全部协议 <span class="count">${readCount}/3</span>`;
+            } else {
+                const unread = [];
+                tabStates.forEach((state, i) => {
+                    if (!state.read) unread.push(protocolNames[i]);
+                });
+                if (unread.length > 0) {
+                    progressHint.innerHTML = `请继续阅读：<span class="highlight">${unread.join('、')}</span> <span class="count">${readCount}/3</span>`;
+                }
+            }
+
+            // 更新按钮状态
+            agreeBtn.classList.toggle('active', allRead);
+            if (allRead) {
+                agreeBtn.textContent = `已阅读并同意 (${readCount}/3)`;
+            } else {
+                agreeBtn.textContent = '已阅读并同意';
+            }
+        }
+
+        // 不同意
+        function handleDisagree() {
+            alert('您需要同意服务协议才能继续使用本平台');
+        }
+
+        // 同意
+        function handleAgree() {
+            if (!agreeBtn.classList.contains('active')) {
+                return;
+            }
+            document.getElementById('successOverlay').classList.add('show');
+        }
+
+        // 关闭成功弹窗
+        function closeSuccess() {
+            document.getElementById('successOverlay').classList.remove('show');
+        }
+
+        // 初始化
+        updateProgress();
+    </script>
+</body>
+</html>
