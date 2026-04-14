@@ -683,6 +683,12 @@ def recommend():
 
         # 取前20个，查询团期
         top_products = vector_results[:20]
+        # 产品级别过滤 OTA（标题含 OTA/飞猪/携程）
+        ota_keywords = ['OTA', '飞猪', '携程', '去哪儿', '马蜂窝']
+        top_products = [
+            p for p in top_products
+            if not any(kw in p.get("metadata", {}).get("title", "") for kw in ota_keywords)
+        ]
         token = get_token()
         for p in top_products:
             tid = p.get("metadata", {}).get("travel_type")
@@ -1191,6 +1197,12 @@ def ai_recommend():
 
         # 3. 取Top20，查团期
         top_products = vector_results[:20]
+        # 产品级别过滤 OTA（标题含 OTA/飞猪/携程）
+        ota_keywords = ['OTA', '飞猪', '携程', '去哪儿', '马蜂窝']
+        top_products = [
+            p for p in top_products
+            if not any(kw in p.get("metadata", {}).get("title", "") for kw in ota_keywords)
+        ]
         token = get_token()
         for p in top_products:
             tid = p.get("metadata", {}).get("travel_type")

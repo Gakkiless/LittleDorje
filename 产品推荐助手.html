@@ -1049,11 +1049,14 @@
                 groupsHtml = `<div style="margin-top:8px;border-top:1px solid #f0e8d8;padding-top:8px;">`;
                 groupsHtml += `<div style="font-size:11px;color:#999;margin-bottom:4px;">📆 可预订团期</div>`;
                 product.groups.forEach(g => {
+                    const bizType = g.categorySubDesc || '主题团';
+                    const code = g.code || '';
                     groupsHtml += `
                         <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0;border-bottom:1px solid #faf6ef;">
-                            <span style="color:#555;">✅ ${g.begin}</span>
+                            <span style="color:#555;min-width:90px;">${bizType}</span>
                             <span style="color:#C9A96E;font-weight:600;">¥${(g.price||0).toLocaleString()}/人</span>
-                            <span style="color:#888;">剩${g.remaining}位</span>
+                            <span style="color:#888;font-size:11px;">剩${g.remaining}位</span>
+                            <span style="color:#aaa;font-size:10px;">${code}</span>
                         </div>
                     `;
                 });
