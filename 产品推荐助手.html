@@ -1221,6 +1221,7 @@
                             <thead>
                                 <tr>
                                     <th>团期号</th>
+                                    <th>业务类型</th>
                                     <th>出发日期</th>
                                     <th>库存</th>
                                     <th>已占</th>
@@ -1236,9 +1237,11 @@
                             const booked = g.sold || (total - remaining);
                             const beginDate = (g.begin || '').slice(5);
                             const endDate = (g.end && g.end !== g.begin) ? ` → ${(g.end || '').slice(5)}` : '';
+                            const bizType = g.categorySubDesc || '主题团';
                             html += `
                                 <tr>
                                     <td class="col-code">${g.code || '—'}</td>
+                                    <td>${bizType}</td>
                                     <td class="col-date">${beginDate}${endDate}</td>
                                     <td>${total}位</td>
                                     <td>${booked}位</td>

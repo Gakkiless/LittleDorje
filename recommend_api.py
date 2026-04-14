@@ -266,6 +266,17 @@ def parse_requirements(query: str) -> dict:
     if req["trip_type"] == "家庭" and not req["season"]:
         req["season"] = "亲子"
 
+    # === 目的地区域识别 ===
+    region_keywords = {
+        "西藏": ["西藏", "藏区", "藏地", "高原"],
+        "云南": ["云南", "丽江"],
+        "滇藏": ["滇藏"],
+    }
+    for region, keywords in region_keywords.items():
+        if any(kw in query for kw in keywords):
+            req["region"] = region
+            break
+
     return req
 
 
@@ -530,6 +541,64 @@ def get_display_strategy(people: int, user_type: str = None, trip_type: str = No
     }
 
 
+# ============ 区域过滤 ============
+# 环线 → 归属区域
+SERIES_REGION_MAP = {
+    "拉萨环线": "西藏",
+    "冰川环线": "西藏",
+    "梅里环线": "云南",
+    "香格里拉环线": "云南",   # 含亚丁（四川，但归入香格里拉区）
+    "昆明/普洱": "云南",
+    "滇藏线": "滇藏",
+    "低空旅行": None,         # 低空有西藏和云南两类，待查series子字段再定
+}
+
+def get_product_region(series: str) -> str:
+    """根据环线返回产品归属区域"""
+    # 精确匹配
+    if series in SERIES_REGION_MAP:
+        return SERIES_REGION_MAP[series]
+    # 前缀匹配（如"低空-西藏"、"低空-云南"）
+    for key, region in SERIES_REGION_MAP.items():
+        if key != "低空旅行" and series.startswith(key):
+            return region
+    # 低空类
+    if "低空" in series or "低空" in series:
+        if "西藏" in series:
+            return "西藏"
+        if "云南" in series:
+            return "云南"
+    return None
+
+
+def filter_by_region(products: list, region: str) -> list:
+    """
+    按用户指定区域过滤产品
+    - 西藏用户：只看西藏 + 滇藏（滇藏含西藏段）
+    - 云南用户：只看云南 + 滇藏
+    - 滇藏用户：看全部（不过滤）
+    - 无区域：不过滤
+    """
+    if not region:
+        return products
+    result = []
+    for p in products:
+        p_region = get_product_region(p.get("metadata", {}).get("series", ""))
+        if p_region is None:
+            # 无法判断区域的，不过滤（保留）
+            result.append(p)
+        elif p_region == region:
+            # 完全匹配
+            result.append(p)
+        elif region == "西藏" and p_region == "滇藏":
+            # 西藏用户也可以看滇藏线
+            result.append(p)
+        elif region == "云南" and p_region == "滇藏":
+            # 云南用户也可以看滇藏线
+            result.append(p)
+    return result
+
+
 # ============ 团期查询 ============
 def query_groups(travel_type: str, token: str, max_groups: int = 3, preferred_month: str = None) -> list:
     """查询产品的可预订团期"""
@@ -607,6 +676,11 @@ def recommend():
             score_product(p, req)
         vector_results.sort(key=lambda x: x.get("score", 0), reverse=True)
 
+        # 目的地区域过滤
+        user_region = req.get("region")
+        if user_region:
+            vector_results = filter_by_region(vector_results, user_region)
+
         # 取前20个，查询团期
         top_products = vector_results[:20]
         token = get_token()
@@ -672,6 +746,7 @@ def recommend():
                             "remaining": g.get("saleNum", 0),
                             "total": g.get("productNum", 0),
                             "code": g.get("travelGroupCode", ""),
+                            "categorySubDesc": g.get("categorySubDesc", ""),  # 业务类型
                         }
                         for g in groups
                     ],
@@ -1110,6 +1185,10 @@ def ai_recommend():
             score_product(p, req)
         vector_results.sort(key=lambda x: x.get("score", 0), reverse=True)
 
+        # 目的地区域过滤
+        if req.get("region"):
+            vector_results = filter_by_region(vector_results, req["region"])
+
         # 3. 取Top20，查团期
         top_products = vector_results[:20]
         token = get_token()
@@ -1159,7 +1238,10 @@ def ai_recommend():
                         {"begin": g.get("groupBeginDate", "")[:10],
                          "price": g.get("startingPrice", 0),
                          "remaining": g.get("saleNum", 0),
-                         "code": g.get("travelGroupCode", "")}
+                         "total": g.get("productNum", 0),
+                         "sold": g.get("soldNum", 0),
+                         "code": g.get("travelGroupCode", ""),
+                         "categorySubDesc": g.get("categorySubDesc", "")}
                         for g in p.get("groups", [])
                     ],
                 })
