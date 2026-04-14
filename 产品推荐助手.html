@@ -650,6 +650,7 @@
         // ============================================
         // 酒店代码映射（来自酒店表 2026-04-03）
         // ============================================
+        // 酒店代码映射：长名称优先（按长度降序匹配）
         const HOTEL_CODES = {
             // 南迦巴瓦
             '南迦巴瓦': 'STNJBW', '达林': 'STNJBW', '达': 'STNJBW',
@@ -670,7 +671,7 @@
             // 茨中
             '茨中': 'STCZH', '茨': 'STCZH',
             // 巴松措
-            '巴松措': 'STLKBSC', '巴': 'STLKBSC', '巴松': 'STLKBSC',
+            '巴松措': 'STLKBSC', '巴松': 'STLKBSC', '巴': 'STLKBSC',
             // 拉萨
             '拉萨': 'STLKLS', '拉': 'STLKLS',
             // 百巴
@@ -688,7 +689,17 @@
             // 如美
             '如美': 'STMKRM',
             // 泸沽湖（英迪格）
-            '泸沽湖': 'LGLHOTEL', '泸': 'LGLHOTEL'
+            '泸沽湖': 'LGLHOTEL', '泸': 'LGLHOTEL',
+            // 昆明林卡
+            '昆明林卡': 'STLKKM', '昆明': 'STLKKM',
+            // 乃朗
+            '乃朗': 'STNL',
+            // 日喀则
+            '日喀则': 'STRKZ',
+            // 墨脱
+            '墨脱': 'STMT',
+            // 保山
+            '保山': 'STBS'
         };
 
         const HOTEL_NAMES = {
@@ -710,7 +721,12 @@
             'STPELG': '松赞普洱绿谷',
             'STYD': '松赞亚丁山居',
             'STMKRM': '松赞如美山居',
-            'LGLHOTEL': '泸沽湖英迪格酒店'
+            'LGLHOTEL': '泸沽湖英迪格酒店',
+            'STLKKM': '松赞昆明林卡',
+            'STNL': '松赞乃朗山居',
+            'STRKZ': '松赞日喀则',
+            'STMT': '松赞墨脱',
+            'STBS': '松赞保山'
         };
 
         // API配置
@@ -728,9 +744,11 @@
 
             if (!isInventoryQuery) return null;
 
-            // 提取酒店名称
+            // 提取酒店名称（按名称长度降序匹配，避免短名称误匹配）
             let hotelCode = null;
-            for (const [name, code] of Object.entries(HOTEL_CODES)) {
+            const sortedNames = Object.entries(HOTEL_CODES)
+                .sort((a, b) => b[0].length - a[0].length);
+            for (const [name, code] of sortedNames) {
                 if (q.includes(name.toLowerCase())) {
                     hotelCode = code;
                     break;
