@@ -4,6 +4,7 @@
 提供推荐算法接口，支持微信小程序调用
 """
 import sys
+import os
 import time
 import json
 import re
